@@ -7,7 +7,7 @@ from __future__ import print_function
 # Imports
 import numpy as np
 import tensorflow as tf
-
+import matplotlib.pyplot as plt
 tf.logging.set_verbosity(tf.logging.INFO)
 
 
@@ -25,7 +25,7 @@ def cnn_model_fn(features, labels, mode):
         activation=tf.nn.relu)
 
     # Pooling Layer #1
-    pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2)
+    pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2)  #(28-2)/2 = 13x13
 
     # Convolutional Layer #2 and Pooling Layer #2
     conv2 = tf.layers.conv2d(
@@ -34,7 +34,7 @@ def cnn_model_fn(features, labels, mode):
         kernel_size=[5, 5],
         padding="same",
         activation=tf.nn.relu)
-    pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
+    pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)  #(13-2)/2: 7x7x64
 
     # Dense Layer
     pool2_flat = tf.reshape(pool2, [-1, 7 * 7 * 64])
@@ -51,6 +51,7 @@ def cnn_model_fn(features, labels, mode):
         "classes": tf.argmax(input=logits, axis=1),
         # Add `softmax_tensor` to the graph. It is used for PREDICT and by the
         # `logging_hook`.
+        #
         "probabilities": tf.nn.softmax(logits, name="softmax_tensor")
     }
 
@@ -75,6 +76,10 @@ def cnn_model_fn(features, labels, mode):
     eval_metric_ops = {
         "accuracy": tf.metrics.accuracy(
             labels=labels, predictions=predictions["classes"])}
+
+    #logging_hook = tf.train.LoggingTensorHook({"loss": loss}, every_n_iter=200)
+
+    # in main logging: histograms: tf.summary, summary_saver
     return tf.estimator.EstimatorSpec(
         mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
@@ -91,11 +96,14 @@ def main(unused_argv):
         model_fn=cnn_model_fn, model_dir="/tmp/mnist_convnet_model")
     tensors_to_log = {"loss": "loss"}
     logging_hook = tf.train.LoggingTensorHook(
-        tensors=tensors_to_log, every_n_iter=500)
+        tensors=tensors_to_log, every_n_iter=200)
 
 
-    # Train the model
-    
+    no_of_iters = 9000
+    no_of_pts = 100
+    no_of_steps = no_of_iters/no_of_pts
+    val_acc_lst = np.zeros(no_of_pts)
+
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
         x={"x": train_data},
         y=train_labels,
@@ -103,19 +111,23 @@ def main(unused_argv):
         num_epochs=None,
         shuffle=True)
 
-
-    mnist_classifier.train(
-        input_fn=train_input_fn,
-        steps=20000,
-        hooks=[logging_hook])
-    # Evaluate the model and print results
     eval_input_fn = tf.estimator.inputs.numpy_input_fn(
         x={"x": eval_data},
         y=eval_labels,
         num_epochs=1,
         shuffle=False)
-    eval_results = mnist_classifier.evaluate(input_fn=eval_input_fn)
 
+    # Train the model
+    #training loss and validation accuracy
+    #Show for at least 100 points between 0 to 20000 iterations.
+    for i in range(no_of_pts):
+        mnist_classifier.train(
+            input_fn=train_input_fn,
+            steps=no_of_steps,
+            hooks=[logging_hook])
+        # Evaluate the model and print results
+        eval_results = mnist_classifier.evaluate(input_fn=eval_input_fn)
+        val_acc_lst[i] = eval_results['accuracy']
 
     print(eval_results)
 

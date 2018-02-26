@@ -7,12 +7,14 @@ import sys
 import numpy as np
 import tensorflow as tf
 import argparse
+import os
+
 import os.path as osp
 from PIL import Image
 from functools import partial
 
 from eval import compute_map
-import models
+#import models
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -42,6 +44,80 @@ CLASS_NAMES = [
 
 def cnn_model_fn(features, labels, mode, num_classes=20):
     # Write this function
+    # Input Layer
+    input_layer = tf.reshape(features["x"], [-1, 256, 256, 3])
+
+    # Convolutional Layer #1
+    conv1 = tf.layers.conv2d(
+        inputs=input_layer,
+        filters=32,
+        kernel_size=[5, 5, 3],
+        padding="same",
+        activation=tf.nn.relu)  # padding is same hence output width is same as input 256x256
+
+    # Pooling Layer #1
+    pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2)  #(256 - 2)/2 = 254/2 = bx127x127
+
+    # Convolutional Layer #2 and Pooling Layer #2
+    conv2 = tf.layers.conv2d(
+        inputs=pool1,
+        filters=64,
+        kernel_size=[5, 5],
+        padding="same",
+        activation=tf.nn.relu)
+    pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2) # (127-2)/2 = bx64x64x64
+
+    # Dense Layer
+    pool2_flat = tf.reshape(pool2, [-1, 64 * 64 * 64])
+    dense = tf.layers.dense(inputs=pool2_flat, units=1024,
+                            activation=tf.nn.relu)                  #
+    dropout = tf.layers.dropout(
+        inputs=dense, rate=0.4, training=mode == tf.estimator.ModeKeys.TRAIN)
+
+    # Logits Layer
+    logits = tf.layers.dense(inputs=dropout, units=20)
+
+    predictions = {
+        # Generate predictions (for PREDICT and EVAL mode)
+        "classes": tf.argmax(input=logits, axis=1),
+        # Add `softmax_tensor` to the graph. It is used for PREDICT and by the
+        # `logging_hook`.
+        #
+        "probabilities": tf.nn.softmax(logits, name="softmax_tensor")
+    }
+
+    if mode == tf.estimator.ModeKeys.PREDICT:
+        return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
+
+
+    # Calculate Loss (for both TRAIN and EVAL modes)
+    #onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=10)
+    loss = tf.identity(tf.losses.softmax_cross_entropy(
+        onehot_labels=labels, logits=logits), name='loss')
+
+    # Configure the Training Op (for TRAIN mode)
+    if mode == tf.estimator.ModeKeys.TRAIN:
+        optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
+        train_op = optimizer.minimize(
+            loss=loss,
+            global_step=tf.train.get_global_step())
+        return tf.estimator.EstimatorSpec(
+            mode=mode, loss=loss, train_op=train_op)
+
+    # Add evaluation metrics (for EVAL mode)
+    eval_metric_ops = {
+        "accuracy": tf.metrics.accuracy(
+            labels=labels, predictions=predictions["classes"])}
+
+    #logging_hook = tf.train.LoggingTensorHook({"loss": loss}, every_n_iter=200)
+
+    # in main logging: histograms: tf.summary, summary_saver
+    return tf.estimator.EstimatorSpec(
+        mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
+
+
+
+
 
 
 def load_pascal(data_dir, split='train'):
@@ -63,6 +139,49 @@ def load_pascal(data_dir, split='train'):
             are ambiguous.
     """
     # Wrote this function
+
+    #"ImageSets/Main/", "<class_name>_<split_name>.txt"
+    num_classes = 20
+    H = 256
+    W = 256
+
+    N_dict = {'train': 2501, 'val':2510, 'trainval': 5011, 'test': 4952}
+    N = N_dict[split]
+
+    images = np.zeros((N, H, W, 3), dtype=np.float32)
+    labels = np.zeros((N, num_classes), dtype=np.int32)
+    weights = np.zeros((N, num_classes), dtype=np.int32)
+
+    #Load Images
+    file_name = data_dir + "ImageSets/Main/" + split + '.txt'
+    with open(file_name, 'r') as image_lst_file:
+        i=0
+        for line in image_lst_file.readlines():
+            img_no = line.strip('\n')
+            image_name = data_dir + 'JPEGImages/' + img_no + '.jpg'
+            img = Image.open(image_name)
+            img = img.resize((H, W), Image.ANTIALIAS)
+            imgarr = np.asarray(img, dtype=np.float32)
+            images[i, :, :, :] = imgarr
+            i += 1
+
+    for i in range(len(CLASS_NAMES)):
+        cls = CLASS_NAMES[i]
+        file_name = data_dir + "ImageSets/Main/" + cls + '_' + split + '.txt'
+        with open(file_name, 'r') as image_lst_file:
+            im_idx = 0
+            for line in image_lst_file.readlines():
+                _, is_present = line.strip('\n').split()
+                if is_present == '1':
+                    weights[im_idx][i] = 1
+                    labels[im_idx][i] = 1
+
+                if is_present == '0':
+                    labels[im_idx][i] = 1
+
+                im_idx += 1
+    return images, labels, weights
+
 
 
 def parse_args():
@@ -97,6 +216,8 @@ def main():
         model_fn=partial(cnn_model_fn,
                          num_classes=train_labels.shape[1]),
         model_dir="/tmp/pascal_model_scratch")
+
+
     tensors_to_log = {"loss": "loss"}
     logging_hook = tf.train.LoggingTensorHook(
         tensors=tensors_to_log, every_n_iter=10)
