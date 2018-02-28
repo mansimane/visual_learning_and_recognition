@@ -200,32 +200,32 @@ def _get_el(arr, i):
 def main():
     args = parse_args()
     # Load training and eval data
-    #train_data, train_labels, train_weights = load_pascal(
-    #    args.data_dir, split='trainval')
-    #np.save(os.path.join(args.data_dir, 'trainval' + '_data_images'), train_data)
-    #np.save(os.path.join(args.data_dir, 'trainval' + '_data_labels'), train_labels)
-    #np.save(os.path.join(args.data_dir, 'trainval' + '_data_weights'), train_weights)
+    train_data, train_labels, train_weights = load_pascal(
+        args.data_dir, split='trainval')
+    np.save(os.path.join(args.data_dir, 'trainval' + '_data_images'), train_data)
+    np.save(os.path.join(args.data_dir, 'trainval' + '_data_labels'), train_labels)
+    np.save(os.path.join(args.data_dir, 'trainval' + '_data_weights'), train_weights)
 
-    train_data = np.load(os.path.join(args.data_dir, 'trainval' + '_data_images.npy'))
-    train_labels = np.load(os.path.join(args.data_dir, 'trainval' + '_data_labels.npy'))
-    train_weights = np.load(os.path.join(args.data_dir, 'trainval' + '_data_weights.npy'))
+    # train_data = np.load(os.path.join(args.data_dir, 'trainval' + '_data_images.npy'))
+    # train_labels = np.load(os.path.join(args.data_dir, 'trainval' + '_data_labels.npy'))
+    # train_weights = np.load(os.path.join(args.data_dir, 'trainval' + '_data_weights.npy'))
 
-    #eval_data, eval_labels, eval_weights = load_pascal(
-    #    args.data_dir, split='test')
+    eval_data, eval_labels, eval_weights = load_pascal(
+        args.data_dir, split='test')
 
-    #np.save(os.path.join(args.data_dir, 'test' + '_data_images'), eval_data)
-    #np.save(os.path.join(args.data_dir, 'test' + '_data_labels'), eval_labels)
-    #np.save(os.path.join(args.data_dir, 'test' + '_data_weights'), eval_weights)
-    eval_data = np.load(os.path.join(args.data_dir, 'test' + '_data_images.npy'))
-    eval_labels = np.load(os.path.join(args.data_dir, 'test' + '_data_labels.npy'))
-    eval_weights = np.load(os.path.join(args.data_dir, 'test' + '_data_weights.npy'))
+    np.save(os.path.join(args.data_dir, 'test' + '_data_images'), eval_data)
+    np.save(os.path.join(args.data_dir, 'test' + '_data_labels'), eval_labels)
+    np.save(os.path.join(args.data_dir, 'test' + '_data_weights'), eval_weights)
+    # eval_data = np.load(os.path.join(args.data_dir, 'test' + '_data_images.npy'))
+    # eval_labels = np.load(os.path.join(args.data_dir, 'test' + '_data_labels.npy'))
+    # eval_weights = np.load(os.path.join(args.data_dir, 'test' + '_data_weights.npy'))
 
-    print("train_data.shape", train_data.shape)
-    print("train_lables.shape", train_labels.shape)
-    print("train_weights.shape", train_weights.shape)
-    print("eval_data.shape", eval_data.shape)
-    print("e_labels.shape", eval_labels.shape)
-    print("e_weights.shape", eval_weights.shape)
+    # print("train_data.shape", train_data.shape)
+    # print("train_lables.shape", train_labels.shape)
+    # print("train_weights.shape", train_weights.shape)
+    # print("eval_data.shape", eval_data.shape)
+    # print("e_labels.shape", eval_labels.shape)
+    # print("e_weights.shape", eval_weights.shape)
 
 
     pascal_classifier = tf.estimator.Estimator(
@@ -236,39 +236,47 @@ def main():
     tensors_to_log = {"loss": "loss"}
     logging_hook = tf.train.LoggingTensorHook(
         tensors=tensors_to_log, every_n_iter=10)
+
     # Train the model
-    BATCH_SIZE = 100
-    NUM_ITERS = 5
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
         x={"x": train_data, "w": train_weights},
         y=train_labels,
         batch_size=BATCH_SIZE,
         num_epochs=None,
         shuffle=True)
-    pascal_classifier.train(
-        input_fn=train_input_fn,
-        steps=NUM_ITERS,
-        hooks=[logging_hook])
-    # Evaluate the model and print results
     eval_input_fn = tf.estimator.inputs.numpy_input_fn(
         x={"x": eval_data, "w": eval_weights},
         y=eval_labels,
         num_epochs=1,
         shuffle=False)
-    pred = list(pascal_classifier.predict(input_fn=eval_input_fn))
-    pred = np.stack([p['probabilities'] for p in pred])
-    rand_AP = compute_map(
-        eval_labels, np.random.random(eval_labels.shape),
-        eval_weights, average=None)
-    print('Random AP: {} mAP'.format(np.mean(rand_AP)))
-    gt_AP = compute_map(
-        eval_labels, eval_labels, eval_weights, average=None)
-    print('GT AP: {} mAP'.format(np.mean(gt_AP)))
-    AP = compute_map(eval_labels, pred, eval_weights, average=None)
-    print('Obtained {} mAP'.format(np.mean(AP)))
-    print('per class:')
-    for cid, cname in enumerate(CLASS_NAMES):
-        print('{}: {}'.format(cname, _get_el(AP, cid)))
+
+    BATCH_SIZE = 100
+    no_of_iters = 1000
+    no_of_pts = 100
+    no_of_steps = no_of_iters/no_of_pts
+
+    for i in range(no_of_pts):
+        pascal_classifier.train(
+            input_fn=train_input_fn,
+            steps=no_of_steps,
+            hooks=[logging_hook])
+        # Evaluate the model and print results
+        pred = list(pascal_classifier.predict(input_fn=eval_input_fn))
+        pred = np.stack([p['probabilities'] for p in pred])
+        rand_AP = compute_map(
+            eval_labels, np.random.random(eval_labels.shape),
+            eval_weights, average=None)
+
+        print('Random AP: {} mAP'.format(np.mean(rand_AP)))
+        gt_AP = compute_map(
+            eval_labels, eval_labels, eval_weights, average=None)
+        print('GT AP: {} mAP'.format(np.mean(gt_AP)))
+        AP = compute_map(eval_labels, pred, eval_weights, average=None)
+        print('Obtained {} mAP'.format(np.mean(AP)))
+        print('per class:')
+        for cid, cname in enumerate(CLASS_NAMES):
+            print('{}: {}'.format(cname, _get_el(AP, cid)))
+
 
 
 if __name__ == "__main__":
