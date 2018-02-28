@@ -195,7 +195,6 @@ def _get_el(arr, i):
     except IndexError:
         return arr
 
-
 def main():
     args = parse_args()
     # Load training and eval data
