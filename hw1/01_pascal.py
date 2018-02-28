@@ -14,6 +14,7 @@ from functools import partial
 
 from eval import compute_map
 #import models
+from tensorflow.core.framework import summary_pb2
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -251,7 +252,7 @@ def main():
         shuffle=False)
 
     BATCH_SIZE = 100
-    no_of_iters = 1000
+    no_of_iters = 300
     no_of_pts = 100
     no_of_steps = no_of_iters/no_of_pts
 
@@ -263,20 +264,25 @@ def main():
         # Evaluate the model and print results
         pred = list(pascal_classifier.predict(input_fn=eval_input_fn))
         pred = np.stack([p['probabilities'] for p in pred])
+
         rand_AP = compute_map(
             eval_labels, np.random.random(eval_labels.shape),
             eval_weights, average=None)
-
         print('Random AP: {} mAP'.format(np.mean(rand_AP)))
+
         gt_AP = compute_map(
             eval_labels, eval_labels, eval_weights, average=None)
         print('GT AP: {} mAP'.format(np.mean(gt_AP)))
+
         AP = compute_map(eval_labels, pred, eval_weights, average=None)
         print('Obtained {} mAP'.format(np.mean(AP)))
+
         print('per class:')
         for cid, cname in enumerate(CLASS_NAMES):
             print('{}: {}'.format(cname, _get_el(AP, cid)))
 
+        #value = summary_pb2.Summary.Value(tag="Accuracy", simple_value=0.95)
+        #summary = summary_pb2.Summary(value=[value])
 
 
 if __name__ == "__main__":
