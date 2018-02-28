@@ -3,6 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 # Imports
+import os
 import sys
 import numpy as np
 import tensorflow as tf
@@ -44,7 +45,7 @@ num_classes = 20
 
 def cnn_model_fn(features, labels, mode, num_classes=20):
     # Write this function
-    input_layer = tf.reshape(features["x"], [-1, 28, 28, 1])
+    input_layer = tf.reshape(features["x"], [-1, 256, 256, 3])
 
     # Convolutional Layer #1
     conv1 = tf.layers.conv2d(
@@ -74,6 +75,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         inputs=dense, rate=0.4, training=mode == tf.estimator.ModeKeys.TRAIN)
 
     # Logits Layer
+    #print dropout.shape
     logits = tf.layers.dense(inputs=dropout, units=num_classes)
     probs = tf.sigmoid(logits, name="sigmoid_tensor")
     pred_float = tf.greater_equal(probs, 0.5)
@@ -92,9 +94,9 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
     # Calculate Loss (for both TRAIN and EVAL modes)
-    onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=10)
-    loss = tf.identity(tf.losses.softmax_cross_entropy(
-        onehot_labels=onehot_labels, logits=logits), name='loss')
+#    onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=10)
+    loss = tf.identity(tf.losses.sigmoid_cross_entropy(
+         multi_class_labels=labels, logits=logits), name='loss')
 
     # Configure the Training Op (for TRAIN mode)
     if mode == tf.estimator.ModeKeys.TRAIN:
@@ -198,10 +200,33 @@ def _get_el(arr, i):
 def main():
     args = parse_args()
     # Load training and eval data
-    train_data, train_labels, train_weights = load_pascal(
-        args.data_dir, split='trainval')
-    eval_data, eval_labels, eval_weights = load_pascal(
-        args.data_dir, split='test')
+    #train_data, train_labels, train_weights = load_pascal(
+    #    args.data_dir, split='trainval')
+    #np.save(os.path.join(args.data_dir, 'trainval' + '_data_images'), train_data)
+    #np.save(os.path.join(args.data_dir, 'trainval' + '_data_labels'), train_labels)
+    #np.save(os.path.join(args.data_dir, 'trainval' + '_data_weights'), train_weights)
+
+    train_data = np.load(os.path.join(args.data_dir, 'trainval' + '_data_images.npy'))
+    train_labels = np.load(os.path.join(args.data_dir, 'trainval' + '_data_labels.npy'))
+    train_weights = np.load(os.path.join(args.data_dir, 'trainval' + '_data_weights.npy'))
+
+    #eval_data, eval_labels, eval_weights = load_pascal(
+    #    args.data_dir, split='test')
+
+    #np.save(os.path.join(args.data_dir, 'test' + '_data_images'), eval_data)
+    #np.save(os.path.join(args.data_dir, 'test' + '_data_labels'), eval_labels)
+    #np.save(os.path.join(args.data_dir, 'test' + '_data_weights'), eval_weights)
+    eval_data = np.load(os.path.join(args.data_dir, 'test' + '_data_images.npy'))
+    eval_labels = np.load(os.path.join(args.data_dir, 'test' + '_data_labels.npy'))
+    eval_weights = np.load(os.path.join(args.data_dir, 'test' + '_data_weights.npy'))
+
+    print("train_data.shape", train_data.shape)
+    print("train_lables.shape", train_labels.shape)
+    print("train_weights.shape", train_weights.shape)
+    print("eval_data.shape", eval_data.shape)
+    print("e_labels.shape", eval_labels.shape)
+    print("e_weights.shape", eval_weights.shape)
+
 
     pascal_classifier = tf.estimator.Estimator(
         model_fn=partial(cnn_model_fn,
