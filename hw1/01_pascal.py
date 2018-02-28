@@ -7,8 +7,6 @@ import sys
 import numpy as np
 import tensorflow as tf
 import argparse
-import os
-
 import os.path as osp
 from PIL import Image
 from functools import partial
@@ -41,22 +39,23 @@ CLASS_NAMES = [
     'tvmonitor',
 ]
 
+num_classes = 20
+
 
 def cnn_model_fn(features, labels, mode, num_classes=20):
     # Write this function
-    # Input Layer
-    input_layer = tf.reshape(features["x"], [-1, 256, 256, 3])
+    input_layer = tf.reshape(features["x"], [-1, 28, 28, 1])
 
     # Convolutional Layer #1
     conv1 = tf.layers.conv2d(
         inputs=input_layer,
         filters=32,
-        kernel_size=[5, 5, 3],
+        kernel_size=[5, 5],
         padding="same",
-        activation=tf.nn.relu)  # padding is same hence output width is same as input 256x256
+        activation=tf.nn.relu)
 
     # Pooling Layer #1
-    pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2)  #(256 - 2)/2 = 254/2 = bx127x127
+    pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2)  #(28-2)/2 = 13x13
 
     # Convolutional Layer #2 and Pooling Layer #2
     conv2 = tf.layers.conv2d(
@@ -65,35 +64,37 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         kernel_size=[5, 5],
         padding="same",
         activation=tf.nn.relu)
-    pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2) # (127-2)/2 = bx64x64x64
+    pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)  #(13-2)/2: 7x7x64
 
     # Dense Layer
     pool2_flat = tf.reshape(pool2, [-1, 64 * 64 * 64])
     dense = tf.layers.dense(inputs=pool2_flat, units=1024,
-                            activation=tf.nn.relu)                  #
+                            activation=tf.nn.relu)
     dropout = tf.layers.dropout(
         inputs=dense, rate=0.4, training=mode == tf.estimator.ModeKeys.TRAIN)
 
     # Logits Layer
-    logits = tf.layers.dense(inputs=dropout, units=20)
+    logits = tf.layers.dense(inputs=dropout, units=num_classes)
+    probs = tf.sigmoid(logits, name="sigmoid_tensor")
+    pred_float = tf.greater_equal(probs, 0.5)
+    pred_int = tf.cast(pred_float, dtype="int32")
 
     predictions = {
         # Generate predictions (for PREDICT and EVAL mode)
-        "classes": tf.argmax(input=logits, axis=1),
+        "classes": pred_int,
         # Add `softmax_tensor` to the graph. It is used for PREDICT and by the
         # `logging_hook`.
         #
-        "probabilities": tf.nn.softmax(logits, name="softmax_tensor")
+        "probabilities": probs
     }
 
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
-
     # Calculate Loss (for both TRAIN and EVAL modes)
-    #onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=10)
+    onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=10)
     loss = tf.identity(tf.losses.softmax_cross_entropy(
-        onehot_labels=labels, logits=logits), name='loss')
+        onehot_labels=onehot_labels, logits=logits), name='loss')
 
     # Configure the Training Op (for TRAIN mode)
     if mode == tf.estimator.ModeKeys.TRAIN:
@@ -116,10 +117,6 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
 
-
-
-
-
 def load_pascal(data_dir, split='train'):
     """
     Function to read images from PASCAL data folder.
@@ -135,13 +132,10 @@ def load_pascal(data_dir, split='train'):
             are active in that image.
         weights: (np.ndarray): An array of shape (N, 20) of
             type np.int32, with 0s and 1s; 1s for classes that
-            are confidently labeled and 0s for classes that 
+            are confidently labeled and 0s for classes that
             are ambiguous.
     """
     # Wrote this function
-
-    #"ImageSets/Main/", "<class_name>_<split_name>.txt"
-    num_classes = 20
     H = 256
     W = 256
 
@@ -172,16 +166,14 @@ def load_pascal(data_dir, split='train'):
             im_idx = 0
             for line in image_lst_file.readlines():
                 _, is_present = line.strip('\n').split()
-                if is_present == '1':
+                is_present = int(is_present)
+                if is_present == 1:
+                    labels[im_idx][i] = 1
+
+                if is_present != 0:
                     weights[im_idx][i] = 1
-                    labels[im_idx][i] = 1
-
-                if is_present == '0':
-                    labels[im_idx][i] = 1
-
                 im_idx += 1
     return images, labels, weights
-
 
 
 def parse_args():
@@ -217,11 +209,12 @@ def main():
                          num_classes=train_labels.shape[1]),
         model_dir="/tmp/pascal_model_scratch")
 
-
     tensors_to_log = {"loss": "loss"}
     logging_hook = tf.train.LoggingTensorHook(
         tensors=tensors_to_log, every_n_iter=10)
     # Train the model
+    BATCH_SIZE = 100
+    NUM_ITERS = 5
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
         x={"x": train_data, "w": train_weights},
         y=train_labels,
