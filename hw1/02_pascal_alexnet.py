@@ -41,10 +41,15 @@ CLASS_NAMES = [
 ]
 
 num_classes = 20
+BATCH_SIZE = 10
+no_of_iters = 1000
+no_of_pts = 100
+no_of_steps = no_of_iters / no_of_pts
 
 
 def cnn_model_fn(features, labels, mode, num_classes=20):
     # Write this function
+    # Referred :https://github.com/tensorflow/models/blob/master/tutorials/image/mnist/convolutional.py#L243
     # ***crop size is 227?
     input_layer = tf.reshape(features["x"], [-1, 256, 256, 3])
 
@@ -136,8 +141,22 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
          multi_class_labels=labels, logits=logits), name='loss')
 
     # Configure the Training Op (for TRAIN mode)
+    #batch_no = tf.train.get_global_step()
+
+    batch_no = tf.Variable(0, dtype=tf.float32)
     if mode == tf.estimator.ModeKeys.TRAIN:
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
+        #optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
+        learning_rate = tf.train.exponential_decay(
+            0.001,  # Base learning rate.
+            batch_no * BATCH_SIZE,  # Current index into the dataset.
+            10000,  # Decay step.
+            0.95,  # Decay rate.
+            staircase=True)
+
+        # Use simple momentum for the optimization.
+        optimizer = tf.train.MomentumOptimizer(learning_rate,
+                                               0.9).minimize(loss,
+                                                             global_step=batch_no)
         train_op = optimizer.minimize(
             loss=loss,
             global_step=tf.train.get_global_step())
@@ -178,7 +197,7 @@ def load_pascal(data_dir, split='train'):
     H = 256
     W = 256
 
-    N_dict = {'train': 2501, 'val':2510, 'trainval': 5011, 'test': 4952}
+    N_dict = {'train': 2501, 'val': 2510, 'trainval': 5011, 'test': 4952}
     N = N_dict[split]
 
     images = np.zeros((N, H, W, 3), dtype=np.float32)
@@ -281,16 +300,13 @@ def main():
         batch_size=BATCH_SIZE,
         num_epochs=None,
         shuffle=True)
+
     eval_input_fn = tf.estimator.inputs.numpy_input_fn(
         x={"x": eval_data, "w": eval_weights},
         y=eval_labels,
         num_epochs=1,
         shuffle=False)
 
-    BATCH_SIZE = 100
-    no_of_iters = 1000
-    no_of_pts = 100
-    no_of_steps = no_of_iters/no_of_pts
 
     for i in range(no_of_pts):
         pascal_classifier.train(
