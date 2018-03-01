@@ -50,8 +50,13 @@ no_of_steps = no_of_iters / no_of_pts
 def cnn_model_fn(features, labels, mode, num_classes=20):
     # Write this function
     # Referred :https://github.com/tensorflow/models/blob/master/tutorials/image/mnist/convolutional.py#L243
+    # Data Augmentation: https://stackoverflow.com/questions/38920240/tensorflow-image-operations-for-batches
     # ***crop size is 227?
-    input_layer = tf.reshape(features["x"], [-1, 256, 256, 3])
+
+    flipped_imgs = tf.map_fn(lambda img: tf.image.random_flip_left_right(img), features['x'])
+    distorted_image = tf.map_fn(lambda img: tf.random_crop(img, [256, 256, 3]), flipped_imgs)
+
+    input_layer = tf.reshape(distorted_image, [-1, 256, 256, 3])
 
     # Convolutional Layer #1
     conv1 = tf.layers.conv2d(
@@ -60,7 +65,10 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         kernel_size=[11, 11],
         padding="valid",
         activation=tf.nn.relu,
-        strides=4)
+        strides=4,
+        bias_initializer=tf.zeros_initializer(),
+        use_bias=True,
+        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
 
     # Pooling Layer #1
     pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[3, 3], strides=2)  #
@@ -71,7 +79,10 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         filters=256,
         kernel_size=[5, 5],
         padding="same",
-        activation=tf.nn.relu)
+        activation=tf.nn.relu,
+        bias_initializer=tf.zeros_initializer(),
+        use_bias=True,
+        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
     pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[3, 3], strides=2)  #(
 
     # Convolutional Layer #3 , No pooling
@@ -80,7 +91,10 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         filters=384,
         kernel_size=[3, 3],
         padding="same",
-        activation=tf.nn.relu)
+        activation=tf.nn.relu,
+        bias_initializer=tf.zeros_initializer(),
+        use_bias=True,
+        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
 
     # Convolutional Layer #4 , No pooling
     conv4 = tf.layers.conv2d(
@@ -88,29 +102,43 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         filters=384,
         kernel_size=[3, 3],
         padding="same",
-        activation=tf.nn.relu)
+        activation=tf.nn.relu,
+        bias_initializer=tf.zeros_initializer(),
+        use_bias=True,
+        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
 
     # Convolutional Layer #5 , Pooling Layer #3, No activation
     conv5 = tf.layers.conv2d(
         inputs=conv4,
         filters=256,
         kernel_size=[3, 3],
-        padding="same")
+        padding="same",
+        bias_initializer=tf.zeros_initializer(),
+        use_bias=True,
+        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
     pool3 = tf.layers.max_pooling2d(inputs=conv5, pool_size=[3, 3], strides=2)  #(
 
 
     # Dense Layer 1
 #    pool3_flat = tf.reshape(pool2, [-1, 64 * 64 * 64]) #*** use flatten?
-    pool3_flat = tf.contrib.layers.flatten(pool2, outputs_collections=None, scope=None) #*** use flatten?
+    pool3_flat = tf.contrib.layers.flatten(pool3, outputs_collections=None, scope=None) #*** use flatten?
 
     dense1 = tf.layers.dense(inputs=pool3_flat, units=4096,
-                            activation=tf.nn.relu)
+                            activation=tf.nn.relu,
+                            bias_initializer=tf.zeros_initializer(),
+                            use_bias=True,
+                            kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+
     dropout1 = tf.layers.dropout(
         inputs=dense1, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN)
 
     # Dense Layer 2
     dense2 = tf.layers.dense(inputs=dropout1, units=4096,
-                            activation=tf.nn.relu)
+                             activation=tf.nn.relu,
+                             bias_initializer=tf.zeros_initializer(),
+                             use_bias=True,
+                             kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+
     dropout2 = tf.layers.dropout(
         inputs=dense2, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN)
 
