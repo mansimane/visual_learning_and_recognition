@@ -14,6 +14,7 @@ from functools import partial
 
 from eval import compute_map
 #import models
+from tensorflow.core.framework import summary_pb2
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -42,7 +43,7 @@ CLASS_NAMES = [
 
 num_classes = 20
 BATCH_SIZE = 10
-no_of_iters = 1000
+no_of_iters = 40000
 no_of_pts = 100
 no_of_steps = no_of_iters / no_of_pts
 
@@ -54,9 +55,9 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
     # ***crop size is 227?
 
     flipped_imgs = tf.map_fn(lambda img: tf.image.random_flip_left_right(img), features['x'])
-    distorted_image = tf.map_fn(lambda img: tf.random_crop(img, [256, 256, 3]), flipped_imgs)
+    distorted_image = tf.map_fn(lambda img: tf.random_crop(img, [224, 224, 3]), flipped_imgs)
 
-    input_layer = tf.reshape(distorted_image, [-1, 256, 256, 3])
+    input_layer = tf.reshape(distorted_image, [-1, 224, 224, 3])
 
     # Convolutional Layer #1
     conv1 = tf.layers.conv2d(
@@ -280,6 +281,15 @@ def _get_el(arr, i):
     except IndexError:
         return arr
 
+def summary_var(log_dir, name, val, step):
+    writer = tf.summary.FileWriterCache.get(log_dir)
+    summary_proto = summary_pb2.Summary()
+    value = summary_proto.value.add()
+    value.tag = name
+    value.simple_value = float(val)
+    writer.add_summary(summary_proto, step)
+    writer.flush()
+
 def main():
     args = parse_args()
     # Load training and eval data
@@ -314,7 +324,7 @@ def main():
     pascal_classifier = tf.estimator.Estimator(
         model_fn=partial(cnn_model_fn,
                          num_classes=train_labels.shape[1]),
-        model_dir="/tmp/pascal_model_scratch")
+        model_dir="/tmp/02_pascal_model_scratch")
 
     tensors_to_log = {"loss": "loss"}
     logging_hook = tf.train.LoggingTensorHook(
@@ -353,11 +363,12 @@ def main():
         print('GT AP: {} mAP'.format(np.mean(gt_AP)))
         AP = compute_map(eval_labels, pred, eval_weights, average=None)
         print('Obtained {} mAP'.format(np.mean(AP)))
-        print('per class:')
-        for cid, cname in enumerate(CLASS_NAMES):
-            print('{}: {}'.format(cname, _get_el(AP, cid)))
+        #print('per class:')
+        #for cid, cname in enumerate(CLASS_NAMES):
+        #    print('{}: {}'.format(cname, _get_el(AP, cid)))
 
-
+        summary_var(log_dir="/tmp/02_pascal_model_scratch",
+                    name="mAP", val=np.mean(AP), step=i)
 
 if __name__ == "__main__":
     main()

@@ -54,9 +54,9 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
     # ***crop size is 227?
 
     flipped_imgs = tf.map_fn(lambda img: tf.image.random_flip_left_right(img), features['x'])
-    distorted_image = tf.map_fn(lambda img: tf.random_crop(img, [256, 256, 3]), flipped_imgs)
+    distorted_image = tf.map_fn(lambda img: tf.random_crop(img, [224, 224, 3]), flipped_imgs)
 
-    input_layer = tf.reshape(distorted_image, [-1, 256, 256, 3])
+    input_layer = tf.reshape(distorted_image, [-1, 224, 224, 3])
 
     # Convolutional Layer #1
     conv1 = tf.layers.conv2d(
