@@ -18,6 +18,7 @@ from tensorflow.core.framework import summary_pb2
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
+
 CLASS_NAMES = [
     'aeroplane',
     'bicycle',
@@ -198,6 +199,15 @@ def _get_el(arr, i):
     except IndexError:
         return arr
 
+def summary_var(log_dir, name, val, step):
+    writer = tf.summary.FileWriterCache.get(log_dir)
+    summary_proto = summary_pb2.Summary()
+    value = summary_proto.value.add()
+    value.tag = name
+    value.simple_value = float(val)
+    writer.add_summary(summary_proto, step)
+    #writer.flush()
+
 def main():
     args = parse_args()
     # Load training and eval data
@@ -211,12 +221,13 @@ def main():
     train_labels = np.load(os.path.join(args.data_dir, 'trainval' + '_data_labels.npy'))
     train_weights = np.load(os.path.join(args.data_dir, 'trainval' + '_data_weights.npy'))
 
-    #eval_data, eval_labels, eval_weights = load_pascal(
-    #    args.data_dir, split='test')
+#    eval_data, eval_labels, eval_weights = load_pascal(
+#        args.data_dir, split='test')
 
-    #np.save(os.path.join(args.data_dir, 'test' + '_data_images'), eval_data)
-    #np.save(os.path.join(args.data_dir, 'test' + '_data_labels'), eval_labels)
-    #np.save(os.path.join(args.data_dir, 'test' + '_data_weights'), eval_weights)
+#    np.save(os.path.join(args.data_dir, 'test' + '_data_images'), eval_data)
+#    np.save(os.path.join(args.data_dir, 'test' + '_data_labels'), eval_labels)
+#    np.save(os.path.join(args.data_dir, 'test' + '_data_weights'), eval_weights)
+
     eval_data = np.load(os.path.join(args.data_dir, 'test' + '_data_images.npy'))
     eval_labels = np.load(os.path.join(args.data_dir, 'test' + '_data_labels.npy'))
     eval_weights = np.load(os.path.join(args.data_dir, 'test' + '_data_weights.npy'))
@@ -277,12 +288,14 @@ def main():
         AP = compute_map(eval_labels, pred, eval_weights, average=None)
         print('Obtained {} mAP'.format(np.mean(AP)))
 
+        #summary_var(log_dir="/tmp/pascal_model_scratch",
+        #            name="mAP", val=np.mean(AP), step=i)
         #print('per class:')
         #for cid, cname in enumerate(CLASS_NAMES):
         #    print('{}: {}'.format(cname, _get_el(AP, cid)))
 
-        value = summary_pb2.Summary.Value(tag="mAP", simple_value=np.float(AP))
-        summary = summary_pb2.Summary(value=[value])
+        #value = summary_pb2.Summary.Value(tag="mAP", simple_value=np.mean(AP))
+        #summary = summary_pb2.Summary(value=[value])
 
 
 if __name__ == "__main__":

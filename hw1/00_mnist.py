@@ -98,7 +98,6 @@ def main(unused_argv):
     logging_hook = tf.train.LoggingTensorHook(
         tensors=tensors_to_log, every_n_iter=200)
 
-
     no_of_iters = 9000
     no_of_pts = 100
     no_of_steps = no_of_iters/no_of_pts

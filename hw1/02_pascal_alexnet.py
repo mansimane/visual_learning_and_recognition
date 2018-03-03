@@ -68,7 +68,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         strides=4,
         bias_initializer=tf.zeros_initializer(),
         use_bias=True,
-        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+        kernel_initializer= tf.initializers.random_normal(stddev=0.01))
 
     # Pooling Layer #1
     pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[3, 3], strides=2)  #
@@ -284,25 +284,25 @@ def _get_el(arr, i):
 def main():
     args = parse_args()
     # Load training and eval data
-    train_data, train_labels, train_weights = load_pascal(
-        args.data_dir, split='trainval')
-    np.save(os.path.join(args.data_dir, 'trainval' + '_data_images'), train_data)
-    np.save(os.path.join(args.data_dir, 'trainval' + '_data_labels'), train_labels)
-    np.save(os.path.join(args.data_dir, 'trainval' + '_data_weights'), train_weights)
+    # train_data, train_labels, train_weights = load_pascal(
+    #     args.data_dir, split='trainval')
+    # np.save(os.path.join(args.data_dir, 'trainval' + '_data_images'), train_data)
+    # np.save(os.path.join(args.data_dir, 'trainval' + '_data_labels'), train_labels)
+    # np.save(os.path.join(args.data_dir, 'trainval' + '_data_weights'), train_weights)
 
-    # train_data = np.load(os.path.join(args.data_dir, 'trainval' + '_data_images.npy'))
-    # train_labels = np.load(os.path.join(args.data_dir, 'trainval' + '_data_labels.npy'))
-    # train_weights = np.load(os.path.join(args.data_dir, 'trainval' + '_data_weights.npy'))
+    train_data = np.load(os.path.join(args.data_dir, 'trainval' + '_data_images.npy'))
+    train_labels = np.load(os.path.join(args.data_dir, 'trainval' + '_data_labels.npy'))
+    train_weights = np.load(os.path.join(args.data_dir, 'trainval' + '_data_weights.npy'))
 
-    eval_data, eval_labels, eval_weights = load_pascal(
-        args.data_dir, split='test')
-
-    np.save(os.path.join(args.data_dir, 'test' + '_data_images'), eval_data)
-    np.save(os.path.join(args.data_dir, 'test' + '_data_labels'), eval_labels)
-    np.save(os.path.join(args.data_dir, 'test' + '_data_weights'), eval_weights)
-    # eval_data = np.load(os.path.join(args.data_dir, 'test' + '_data_images.npy'))
-    # eval_labels = np.load(os.path.join(args.data_dir, 'test' + '_data_labels.npy'))
-    # eval_weights = np.load(os.path.join(args.data_dir, 'test' + '_data_weights.npy'))
+    # eval_data, eval_labels, eval_weights = load_pascal(
+    #     args.data_dir, split='test')
+    #
+    # np.save(os.path.join(args.data_dir, 'test' + '_data_images'), eval_data)
+    # np.save(os.path.join(args.data_dir, 'test' + '_data_labels'), eval_labels)
+    # np.save(os.path.join(args.data_dir, 'test' + '_data_weights'), eval_weights)
+    eval_data = np.load(os.path.join(args.data_dir, 'test' + '_data_images.npy'))
+    eval_labels = np.load(os.path.join(args.data_dir, 'test' + '_data_labels.npy'))
+    eval_weights = np.load(os.path.join(args.data_dir, 'test' + '_data_weights.npy'))
 
     # print("train_data.shape", train_data.shape)
     # print("train_lables.shape", train_labels.shape)
