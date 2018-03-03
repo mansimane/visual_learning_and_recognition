@@ -183,8 +183,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
 
         # Use simple momentum for the optimization.
         optimizer = tf.train.MomentumOptimizer(learning_rate,
-                                               0.9).minimize(loss,
-                                                             global_step=batch_no)
+                                               0.9)
         train_op = optimizer.minimize(
             loss=loss,
             global_step=tf.train.get_global_step())
