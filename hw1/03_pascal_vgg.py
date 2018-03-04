@@ -296,7 +296,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
             loss=loss,
             global_step=tf.train.get_global_step())
         train_summary = []
-        grads_and_vars=train_op.compute_gradients(loss)
+        grads_and_vars=optimizer.compute_gradients(loss)
         for g, v in grads_and_vars:
             if g is not None:
                 #print(format(v.name))
