@@ -43,7 +43,6 @@ CLASS_NAMES = [
 ]
 
 num_classes = 20
-BATCH_SIZE = 128
 
 def cnn_model_fn(features, labels, mode, num_classes=20):
     # Write this function
@@ -206,7 +205,7 @@ def summary_var(log_dir, name, val, step):
     value.tag = name
     value.simple_value = float(val)
     writer.add_summary(summary_proto, step)
-    #writer.flush()
+    writer.flush()
 
 def main():
     args = parse_args()
@@ -243,13 +242,13 @@ def main():
     pascal_classifier = tf.estimator.Estimator(
         model_fn=partial(cnn_model_fn,
                          num_classes=train_labels.shape[1]),
-        model_dir="/tmp/pascal_model_scratch")
+        model_dir="/tmp/01_pascal_model_scratch")
 
     tensors_to_log = {"loss": "loss"}
     logging_hook = tf.train.LoggingTensorHook(
         tensors=tensors_to_log, every_n_iter=10)
 
-    BATCH_SIZE = 128# Train the model
+    BATCH_SIZE = 10# Train the model
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
         x={"x": train_data, "w": train_weights},
         y=train_labels,
@@ -262,8 +261,8 @@ def main():
         num_epochs=1,
         shuffle=False)
 
-    BATCH_SIZE = 100
-    no_of_iters = 300
+    BATCH_SIZE = 10
+    no_of_iters = 1000
     no_of_pts = 100
     no_of_steps = no_of_iters/no_of_pts
 
@@ -288,8 +287,8 @@ def main():
         AP = compute_map(eval_labels, pred, eval_weights, average=None)
         print('Obtained {} mAP'.format(np.mean(AP)))
 
-        #summary_var(log_dir="/tmp/pascal_model_scratch",
-        #            name="mAP", val=np.mean(AP), step=i)
+        summary_var(log_dir="/tmp/01_pascal_model_scratch",
+                    name="mAP", val=np.mean(AP), step=i*no_of_steps)
         #print('per class:')
         #for cid, cname in enumerate(CLASS_NAMES):
         #    print('{}: {}'.format(cname, _get_el(AP, cid)))

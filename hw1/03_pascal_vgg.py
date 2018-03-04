@@ -42,10 +42,10 @@ CLASS_NAMES = [
 
 num_classes = 20
 BATCH_SIZE = 10
-no_of_iters = 1000
+no_of_iters = 100
 no_of_pts = 100
 no_of_steps = no_of_iters / no_of_pts
-
+log_dir = "/tmp/03_pascal_model_scratch"
 
 def cnn_model_fn(features, labels, mode, num_classes=20):
     # Write this function
@@ -285,9 +285,14 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
             0.95,  # Decay rate.
             staircase=True)
 
+        tf.summary.scalar('learning_rate', learning_rate)
+
+        tf.summary.merge_all()
         # Use simple momentum for the optimization.
         optimizer = tf.train.MomentumOptimizer(learning_rate,
                                                0.9)
+        #summary_var(log_dir=log_dir,
+        #            name="learning_rate", val=str(learning_rate), step=tf.train.get_global_step())
         train_op = optimizer.minimize(
             loss=loss,
             global_step=tf.train.get_global_step())
@@ -393,8 +398,18 @@ def summary_var(log_dir, name, val, step):
     writer.add_summary(summary_proto, step)
     writer.flush()
 
+def summary_var_lr(log_dir, name, val, step):
+    writer = tf.summary.FileWriterCache.get(log_dir)
+    summary_proto = summary_pb2.Summary()
+    value = summary_proto.value.add()
+    value.tag = name
+    value.simple_value = val
+    writer.add_summary(summary_proto, step)
+    writer.flush()
+
 def main():
     args = parse_args()
+
     # Load training and eval data
     # train_data, train_labels, train_weights = load_pascal(
     #     args.data_dir, split='trainval')
@@ -421,7 +436,7 @@ def main():
     pascal_classifier = tf.estimator.Estimator(
         model_fn=partial(cnn_model_fn,
                          num_classes=train_labels.shape[1]),
-        model_dir="/tmp/pascal_model_scratch")
+        model_dir=log_dir)
 
     # logging loss
     tensors_to_log = {"loss": "loss"}
@@ -434,9 +449,9 @@ def main():
     #     summary_op=tf.summary.merge_all())
 
     # logging lr
-    tensors_to_log2 = {"learning_rate": "learning_rate"}
-    logging_hook2 = tf.train.LoggingTensorHook(
-        tensors=tensors_to_log2, every_n_iter=100)
+    # tensors_to_log2 = {"learning_rate": "learning_rate"}
+    # logging_hook2 = tf.train.LoggingTensorHook(
+    #     tensors=tensors_to_log2, every_n_iter=100)
 
     # Train the model
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
@@ -457,7 +472,7 @@ def main():
         pascal_classifier.train(
             input_fn=train_input_fn,
             steps=no_of_steps,
-            hooks=[logging_hook, logging_hook2])
+            hooks=[logging_hook])
         # Evaluate the model and print results
         pred = list(pascal_classifier.predict(input_fn=eval_input_fn))
         pred = np.stack([p['probabilities'] for p in pred])
@@ -475,21 +490,19 @@ def main():
         for cid, cname in enumerate(CLASS_NAMES):
             print('{}: {}'.format(cname, _get_el(AP, cid)))
 
-        summary_var(log_dir="/tmp/02_pascal_model_scratch",
+        summary_var(log_dir=log_dir,
                     name="mAP", val=np.mean(AP), step=i*no_of_steps)
 
 
     #######  Image logging
-    summary_op = tf.summary.image("train_images", train_data, max_outputs=40)
-
-    # Session
-    with tf.Session() as sess:
-        # Run
-        summary = sess.run(summary_op)
-        # Write summary
-        writer = tf.train.SummaryWriter('./logs')
-        writer.add_summary(summary)
-        writer.close()
+    # summary_op = tf.summary.image("train_images", train_data, max_outputs=40)
+    # with tf.Session() as sess:
+    #     # Run
+    #     summary = sess.run(summary_op)
+    #     # Write summary
+    #     writer = tf.train.SummaryWriter(log_dir)
+    #     writer.add_summary(summary)
+    #     writer.close()
 
 if __name__ == "__main__":
     main()
