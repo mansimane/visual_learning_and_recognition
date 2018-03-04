@@ -14,7 +14,7 @@ from functools import partial
 
 from eval import compute_map
 #import models
-
+from tensorflow.core.framework import summary_pb2
 tf.logging.set_verbosity(tf.logging.INFO)
 
 CLASS_NAMES = [
@@ -58,6 +58,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
 
     input_layer = tf.reshape(distorted_image, [-1, 224, 224, 3])
 
+    ####### BLOCK 1
     # Convolutional Layer #1
     conv1 = tf.layers.conv2d(
         inputs=input_layer,
@@ -70,82 +71,185 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         use_bias=True,
         kernel_initializer=tf.initializers.random_normal(stddev=0.01))
 
-    # Pooling Layer #1
-    pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[3, 3], strides=2)  #
-
-    # Convolutional Layer #2 and Pooling Layer #2
     conv2 = tf.layers.conv2d(
-        inputs=pool1,
-        filters=256,
-        kernel_size=[5, 5],
-        padding="same",
-        activation=tf.nn.relu,
-        bias_initializer=tf.zeros_initializer(),
-        use_bias=True,
-        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
-    pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[3, 3], strides=2)  #(
-
-    # Convolutional Layer #3 , No pooling
-    conv3 = tf.layers.conv2d(
-        inputs=pool2,
-        filters=384,
+        inputs=conv1,
+        filters=64,
         kernel_size=[3, 3],
         padding="same",
         activation=tf.nn.relu,
+        strides=1,
         bias_initializer=tf.zeros_initializer(),
         use_bias=True,
         kernel_initializer=tf.initializers.random_normal(stddev=0.01))
 
-    # Convolutional Layer #4 , No pooling
+    # Pooling Layer #1
+    pool1 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)  #
+
+    ####### BLOCK 2
+    # Convolutional Layer #3
+    conv3 = tf.layers.conv2d(
+        inputs=pool1,
+        filters=128,
+        kernel_size=[3, 3],
+        padding="same",
+        activation=tf.nn.relu,
+        strides=1,
+        bias_initializer=tf.zeros_initializer(),
+        use_bias=True,
+        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+
     conv4 = tf.layers.conv2d(
         inputs=conv3,
-        filters=384,
+        filters=128,
         kernel_size=[3, 3],
         padding="same",
         activation=tf.nn.relu,
+        strides=1,
         bias_initializer=tf.zeros_initializer(),
         use_bias=True,
         kernel_initializer=tf.initializers.random_normal(stddev=0.01))
 
-    # Convolutional Layer #5 , Pooling Layer #3, No activation
+    # Pooling Layer #2
+    pool2 = tf.layers.max_pooling2d(inputs=conv4, pool_size=[2, 2], strides=2)
+
+    ####### BLOCK 3###
+    # Convolutional Layer #3
     conv5 = tf.layers.conv2d(
-        inputs=conv4,
+        inputs=pool2,
         filters=256,
         kernel_size=[3, 3],
         padding="same",
+        activation=tf.nn.relu,
+        strides=1,
         bias_initializer=tf.zeros_initializer(),
         use_bias=True,
         kernel_initializer=tf.initializers.random_normal(stddev=0.01))
-    pool3 = tf.layers.max_pooling2d(inputs=conv5, pool_size=[3, 3], strides=2)  #(
+
+    conv6 = tf.layers.conv2d(
+        inputs=conv5,
+        filters=256,
+        kernel_size=[3, 3],
+        padding="same",
+        activation=tf.nn.relu,
+        strides=1,
+        bias_initializer=tf.zeros_initializer(),
+        use_bias=True,
+        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+
+    conv7 = tf.layers.conv2d(
+        inputs=conv6,
+        filters=256,
+        kernel_size=[3, 3],
+        padding="same",
+        activation=tf.nn.relu,
+        strides=1,
+        bias_initializer=tf.zeros_initializer(),
+        use_bias=True,
+        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+
+    # Pooling Layer #3
+    pool3 = tf.layers.max_pooling2d(inputs=conv7, pool_size=[2, 2], strides=2)
+
+    ####### BLOCK 4 ###
+    # Convolutional Layer #3
+    conv7 = tf.layers.conv2d(
+        inputs=pool3,
+        filters=512,
+        kernel_size=[3, 3],
+        padding="same",
+        activation=tf.nn.relu,
+        strides=1,
+        bias_initializer=tf.zeros_initializer(),
+        use_bias=True,
+        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+
+    conv8 = tf.layers.conv2d(
+        inputs=conv7,
+        filters=512,
+        kernel_size=[3, 3],
+        padding="same",
+        activation=tf.nn.relu,
+        strides=1,
+        bias_initializer=tf.zeros_initializer(),
+        use_bias=True,
+        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+
+    conv9 = tf.layers.conv2d(
+        inputs=conv8,
+        filters=512,
+        kernel_size=[3, 3],
+        padding="same",
+        activation=tf.nn.relu,
+        strides=1,
+        bias_initializer=tf.zeros_initializer(),
+        use_bias=True,
+        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+
+    # Pooling Layer #3
+    pool4 = tf.layers.max_pooling2d(inputs=conv9, pool_size=[2, 2], strides=2)
+
+    ####### BLOCK 5 ###
+    # Convolutional Layer #10
+    conv10 = tf.layers.conv2d(
+        inputs=pool4,
+        filters=512,
+        kernel_size=[3, 3],
+        padding="same",
+        activation=tf.nn.relu,
+        strides=1,
+        bias_initializer=tf.zeros_initializer(),
+        use_bias=True,
+        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+
+    conv11 = tf.layers.conv2d(
+        inputs=conv10,
+        filters=512,
+        kernel_size=[3, 3],
+        padding="same",
+        activation=tf.nn.relu,
+        strides=1,
+        bias_initializer=tf.zeros_initializer(),
+        use_bias=True,
+        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+
+    conv12 = tf.layers.conv2d(
+        inputs=conv11,
+        filters=512,
+        kernel_size=[3, 3],
+        padding="same",
+        activation=tf.nn.relu,
+        strides=1,
+        bias_initializer=tf.zeros_initializer(),
+        use_bias=True,
+        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+
+    # Pooling Layer #3
+    pool5 = tf.layers.max_pooling2d(inputs=conv12, pool_size=[2, 2], strides=2)
+
+
 
 
     # Dense Layer 1
 #    pool3_flat = tf.reshape(pool2, [-1, 64 * 64 * 64]) #*** use flatten?
-    pool3_flat = tf.contrib.layers.flatten(pool3, outputs_collections=None, scope=None) #*** use flatten?
+    pool5_flat = tf.contrib.layers.flatten(pool5, outputs_collections=None, scope=None) #*** use flatten?
 
-    dense1 = tf.layers.dense(inputs=pool3_flat, units=4096,
+    dense1 = tf.layers.dense(inputs=pool5_flat, units=4096,
                             activation=tf.nn.relu,
                             bias_initializer=tf.zeros_initializer(),
                             use_bias=True,
                             kernel_initializer=tf.initializers.random_normal(stddev=0.01))
 
-    dropout1 = tf.layers.dropout(
-        inputs=dense1, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN)
-
     # Dense Layer 2
-    dense2 = tf.layers.dense(inputs=dropout1, units=4096,
+    dense2 = tf.layers.dense(inputs=dense1, units=4096,
                              activation=tf.nn.relu,
                              bias_initializer=tf.zeros_initializer(),
                              use_bias=True,
                              kernel_initializer=tf.initializers.random_normal(stddev=0.01))
 
-    dropout2 = tf.layers.dropout(
-        inputs=dense2, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN)
-
 
     # Logits Layer
     #print dropout.shape
-    logits = tf.layers.dense(inputs=dropout2, units=num_classes)
+    logits = tf.layers.dense(inputs=dense2, units=num_classes)
 
     probs = tf.sigmoid(logits, name="sigmoid_tensor")
     pred_float = tf.greater_equal(probs, 0.5)
@@ -280,6 +384,15 @@ def _get_el(arr, i):
     except IndexError:
         return arr
 
+def summary_var(log_dir, name, val, step):
+    writer = tf.summary.FileWriterCache.get(log_dir)
+    summary_proto = summary_pb2.Summary()
+    value = summary_proto.value.add()
+    value.tag = name
+    value.simple_value = float(val)
+    writer.add_summary(summary_proto, step)
+    writer.flush()
+
 def main():
     args = parse_args()
     # Load training and eval data
@@ -303,12 +416,6 @@ def main():
     eval_labels = np.load(os.path.join(args.data_dir, 'test' + '_data_labels.npy'))
     eval_weights = np.load(os.path.join(args.data_dir, 'test' + '_data_weights.npy'))
 
-    # print("train_data.shape", train_data.shape)
-    # print("train_lables.shape", train_labels.shape)
-    # print("train_weights.shape", train_weights.shape)
-    # print("eval_data.shape", eval_data.shape)
-    # print("e_labels.shape", eval_labels.shape)
-    # print("e_weights.shape", eval_weights.shape)
 
 
     pascal_classifier = tf.estimator.Estimator(
@@ -316,9 +423,20 @@ def main():
                          num_classes=train_labels.shape[1]),
         model_dir="/tmp/pascal_model_scratch")
 
+    # logging loss
     tensors_to_log = {"loss": "loss"}
     logging_hook = tf.train.LoggingTensorHook(
         tensors=tensors_to_log, every_n_iter=10)
+
+    # summary_hook = tf.train.SummarySaverHook(
+    #     SAVE_EVERY_N_STEPS,
+    #     output_dir='/tmp/tf',
+    #     summary_op=tf.summary.merge_all())
+
+    # logging lr
+    tensors_to_log2 = {"learning_rate": "learning_rate"}
+    logging_hook2 = tf.train.LoggingTensorHook(
+        tensors=tensors_to_log2, every_n_iter=100)
 
     # Train the model
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
@@ -339,7 +457,7 @@ def main():
         pascal_classifier.train(
             input_fn=train_input_fn,
             steps=no_of_steps,
-            hooks=[logging_hook])
+            hooks=[logging_hook, logging_hook2])
         # Evaluate the model and print results
         pred = list(pascal_classifier.predict(input_fn=eval_input_fn))
         pred = np.stack([p['probabilities'] for p in pred])
@@ -357,7 +475,21 @@ def main():
         for cid, cname in enumerate(CLASS_NAMES):
             print('{}: {}'.format(cname, _get_el(AP, cid)))
 
+        summary_var(log_dir="/tmp/02_pascal_model_scratch",
+                    name="mAP", val=np.mean(AP), step=i*no_of_steps)
 
+
+    #######  Image logging
+    summary_op = tf.summary.image("train_images", train_data, max_outputs=40)
+
+    # Session
+    with tf.Session() as sess:
+        # Run
+        summary = sess.run(summary_op)
+        # Write summary
+        writer = tf.train.SummaryWriter('./logs')
+        writer.add_summary(summary)
+        writer.close()
 
 if __name__ == "__main__":
     main()

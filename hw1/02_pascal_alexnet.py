@@ -319,8 +319,6 @@ def main():
     # print("eval_data.shape", eval_data.shape)
     # print("e_labels.shape", eval_labels.shape)
     # print("e_weights.shape", eval_weights.shape)
-
-
     pascal_classifier = tf.estimator.Estimator(
         model_fn=partial(cnn_model_fn,
                          num_classes=train_labels.shape[1]),
