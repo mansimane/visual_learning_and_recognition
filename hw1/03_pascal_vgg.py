@@ -287,7 +287,6 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
 
         tf.summary.scalar('learning_rate', learning_rate)
 
-        tf.summary.merge_all()
         # Use simple momentum for the optimization.
         optimizer = tf.train.MomentumOptimizer(learning_rate,
                                                0.9)
@@ -296,8 +295,20 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         train_op = optimizer.minimize(
             loss=loss,
             global_step=tf.train.get_global_step())
+        train_summary = []
+        grads_and_vars=train_op.compute_gradients(loss)
+        for g, v in grads_and_vars:
+            if g is not None:
+                #print(format(v.name))
+                grad_hist_summary = tf.summary.histogram("{}/grad_histogram".format(v.name), g)
+                train_summary.append(grad_hist_summary)
+
+        tf.summary.merge(train_summary)
+        tf.summary.merge_all()
+
         return tf.estimator.EstimatorSpec(
             mode=mode, loss=loss, train_op=train_op)
+
 
     # Add evaluation metrics (for EVAL mode)
     eval_metric_ops = {
@@ -495,14 +506,14 @@ def main():
 
 
     #######  Image logging
-    # summary_op = tf.summary.image("train_images", train_data, max_outputs=40)
-    # with tf.Session() as sess:
+    summary_op = tf.summary.image("train_images", train_data, max_outputs=40)
+    with tf.Session() as sess:
     #     # Run
-    #     summary = sess.run(summary_op)
-    #     # Write summary
-    #     writer = tf.train.SummaryWriter(log_dir)
-    #     writer.add_summary(summary)
-    #     writer.close()
+         summary = sess.run(summary_op)
+         # Write summary
+         writer = tf.train.SummaryWriter(log_dir)
+         writer.add_summary(summary)
+         writer.close()
 
 if __name__ == "__main__":
     main()
