@@ -55,6 +55,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
 
     flipped_imgs = tf.map_fn(lambda img: tf.image.random_flip_left_right(img), features['x'])
     distorted_image = tf.map_fn(lambda img: tf.random_crop(img, [224, 224, 3]), flipped_imgs)
+    tf.summary.image("train_images", distorted_image, max_outputs=40)
     norm_imgs = tf.map_fn(lambda frame: tf.image.per_image_standardization(frame), distorted_image)
     input_layer = tf.reshape(norm_imgs, [-1, 224, 224, 3])
 
@@ -491,14 +492,7 @@ def main():
 
 
     #######  Image logging
-    summary_op = tf.summary.image("train_images", train_data, max_outputs=40)
-    with tf.Session() as sess:
-    #     # Run
-         summary = sess.run(summary_op)
-         # Write summary
-         writer = tf.train.SummaryWriter(log_dir)
-         writer.add_summary(summary)
-         writer.close()
+
 
 if __name__ == "__main__":
     main()
