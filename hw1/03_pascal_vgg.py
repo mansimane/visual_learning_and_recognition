@@ -45,7 +45,7 @@ BATCH_SIZE = 10
 no_of_iters = 100
 no_of_pts = 100
 no_of_steps = no_of_iters / no_of_pts
-log_dir = "/tmp/03_pascal_model_scratch"
+log_dir = "/tmp/03_pascal_model_scratch_with_norm"
 
 def cnn_model_fn(features, labels, mode, num_classes=20):
     # Write this function
@@ -55,8 +55,8 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
 
     flipped_imgs = tf.map_fn(lambda img: tf.image.random_flip_left_right(img), features['x'])
     distorted_image = tf.map_fn(lambda img: tf.random_crop(img, [224, 224, 3]), flipped_imgs)
-
-    input_layer = tf.reshape(distorted_image, [-1, 224, 224, 3])
+    norm_imgs = tf.map_fn(lambda frame: tf.image.per_image_standardization(frame), distorted_image)
+    input_layer = tf.reshape(norm_imgs, [-1, 224, 224, 3])
 
     ####### BLOCK 1
     # Convolutional Layer #1
@@ -68,8 +68,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         activation=tf.nn.relu,
         strides=1,
         bias_initializer=tf.zeros_initializer(),
-        use_bias=True,
-        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+        use_bias=True)
 
     conv2 = tf.layers.conv2d(
         inputs=conv1,
@@ -79,8 +78,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         activation=tf.nn.relu,
         strides=1,
         bias_initializer=tf.zeros_initializer(),
-        use_bias=True,
-        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+        use_bias=True)
 
     # Pooling Layer #1
     pool1 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)  #
@@ -95,8 +93,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         activation=tf.nn.relu,
         strides=1,
         bias_initializer=tf.zeros_initializer(),
-        use_bias=True,
-        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+        use_bias=True)
 
     conv4 = tf.layers.conv2d(
         inputs=conv3,
@@ -106,8 +103,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         activation=tf.nn.relu,
         strides=1,
         bias_initializer=tf.zeros_initializer(),
-        use_bias=True,
-        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+        use_bias=True)
 
     # Pooling Layer #2
     pool2 = tf.layers.max_pooling2d(inputs=conv4, pool_size=[2, 2], strides=2)
@@ -122,8 +118,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         activation=tf.nn.relu,
         strides=1,
         bias_initializer=tf.zeros_initializer(),
-        use_bias=True,
-        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+        use_bias=True)
 
     conv6 = tf.layers.conv2d(
         inputs=conv5,
@@ -133,8 +128,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         activation=tf.nn.relu,
         strides=1,
         bias_initializer=tf.zeros_initializer(),
-        use_bias=True,
-        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+        use_bias=True)
 
     conv7 = tf.layers.conv2d(
         inputs=conv6,
@@ -144,8 +138,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         activation=tf.nn.relu,
         strides=1,
         bias_initializer=tf.zeros_initializer(),
-        use_bias=True,
-        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+        use_bias=True)
 
     # Pooling Layer #3
     pool3 = tf.layers.max_pooling2d(inputs=conv7, pool_size=[2, 2], strides=2)
@@ -160,8 +153,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         activation=tf.nn.relu,
         strides=1,
         bias_initializer=tf.zeros_initializer(),
-        use_bias=True,
-        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+        use_bias=True)
 
     conv8 = tf.layers.conv2d(
         inputs=conv7,
@@ -171,8 +163,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         activation=tf.nn.relu,
         strides=1,
         bias_initializer=tf.zeros_initializer(),
-        use_bias=True,
-        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+        use_bias=True)
 
     conv9 = tf.layers.conv2d(
         inputs=conv8,
@@ -182,8 +173,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         activation=tf.nn.relu,
         strides=1,
         bias_initializer=tf.zeros_initializer(),
-        use_bias=True,
-        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+        use_bias=True)
 
     # Pooling Layer #3
     pool4 = tf.layers.max_pooling2d(inputs=conv9, pool_size=[2, 2], strides=2)
@@ -198,8 +188,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         activation=tf.nn.relu,
         strides=1,
         bias_initializer=tf.zeros_initializer(),
-        use_bias=True,
-        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+        use_bias=True)
 
     conv11 = tf.layers.conv2d(
         inputs=conv10,
@@ -209,8 +198,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         activation=tf.nn.relu,
         strides=1,
         bias_initializer=tf.zeros_initializer(),
-        use_bias=True,
-        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+        use_bias=True)
 
     conv12 = tf.layers.conv2d(
         inputs=conv11,
@@ -220,8 +208,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         activation=tf.nn.relu,
         strides=1,
         bias_initializer=tf.zeros_initializer(),
-        use_bias=True,
-        kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+        use_bias=True)
 
     # Pooling Layer #3
     pool5 = tf.layers.max_pooling2d(inputs=conv12, pool_size=[2, 2], strides=2)
@@ -236,15 +223,13 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
     dense1 = tf.layers.dense(inputs=pool5_flat, units=4096,
                             activation=tf.nn.relu,
                             bias_initializer=tf.zeros_initializer(),
-                            use_bias=True,
-                            kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+                            use_bias=True)
 
     # Dense Layer 2
     dense2 = tf.layers.dense(inputs=dense1, units=4096,
                              activation=tf.nn.relu,
                              bias_initializer=tf.zeros_initializer(),
-                             use_bias=True,
-                             kernel_initializer=tf.initializers.random_normal(stddev=0.01))
+                             use_bias=True)
 
 
     # Logits Layer
@@ -303,7 +288,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
                 grad_hist_summary = tf.summary.histogram("{}/grad_histogram".format(v.name), g)
                 train_summary.append(grad_hist_summary)
 
-        tf.summary.merge(train_summary)
+        #tf.summary.merge(train_summary)
         tf.summary.merge_all()
 
         return tf.estimator.EstimatorSpec(
