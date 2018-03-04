@@ -268,7 +268,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
             0.001,  # Base learning rate.
             batch_no * BATCH_SIZE,  # Current index into the dataset.
             10000,  # Decay step.
-            0.95,  # Decay rate.
+            0.5,  # Decay rate.
             staircase=True)
 
         tf.summary.scalar('learning_rate', learning_rate)
