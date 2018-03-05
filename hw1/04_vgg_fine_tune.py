@@ -45,7 +45,7 @@ BATCH_SIZE = 10
 no_of_iters = 100
 no_of_pts = 100
 no_of_steps = no_of_iters / no_of_pts
-log_dir = "/tmp/03_pascal_model_scratch_with_norm"
+log_dir = "/tmp/04_pascal_fine_tune"
 reader = tf.train.NewCheckpointReader('/home/ubuntu/code/vgg_16.ckpt')
 #Local
 # init_path = tf.train.NewCheckpointReader('vgg_16.ckpt')

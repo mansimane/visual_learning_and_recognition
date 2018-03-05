@@ -42,10 +42,10 @@ CLASS_NAMES = [
 
 num_classes = 20
 BATCH_SIZE = 10
-no_of_iters = 100
-no_of_pts = 100
+no_of_iters = 1000
+no_of_pts = 50
 no_of_steps = no_of_iters / no_of_pts
-log_dir = "/tmp/03_pascal_model_scratch_with_norm"
+log_dir = "/home/ubuntu/code/03_pascal_model_scratch_with_norm"
 
 def cnn_model_fn(features, labels, mode, num_classes=20):
     # Write this function
@@ -55,7 +55,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
 
     flipped_imgs = tf.map_fn(lambda img: tf.image.random_flip_left_right(img), features['x'])
     distorted_image = tf.map_fn(lambda img: tf.random_crop(img, [224, 224, 3]), flipped_imgs)
-    tf.summary.image("train_images", distorted_image, max_outputs=40)
+    tf.summary.image("train_images", distorted_image, max_outputs=60)
     norm_imgs = tf.map_fn(lambda frame: tf.image.per_image_standardization(frame), distorted_image)
     input_layer = tf.reshape(norm_imgs, [-1, 224, 224, 3])
 
@@ -266,7 +266,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         #optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
         learning_rate = tf.train.exponential_decay(
             0.001,  # Base learning rate.
-            batch_no * BATCH_SIZE,  # Current index into the dataset.
+            tf.train.get_global_step(),  # Current index into the dataset.
             10000,  # Decay step.
             0.5,  # Decay rate.
             staircase=True)
