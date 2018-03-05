@@ -76,8 +76,8 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         padding="same",
         activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv1/conv1_1/biases')),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv1/conv1_1/weights')),
+        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv1/conv1_1/biases'),verify_shape=True),
+        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv1/conv1_1/weights'),verify_shape=True),
         use_bias=True)
 
     conv2 = tf.layers.conv2d(
@@ -87,8 +87,8 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         padding="same",
         activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv1/conv1_2/biases')),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv1/conv1_2/weights')),
+        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv1/conv1_2/biases'), verify_shape=True),
+        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv1/conv1_2/weights'), verify_shape=True),
         use_bias=True)
 
     # Pooling Layer #1
@@ -103,8 +103,8 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         padding="same",
         activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv2/conv2_1/biases')),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv2/conv2_1/weights')),
+        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv2/conv2_1/biases'), verify_shape=True),
+        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv2/conv2_1/weights'), verify_shape=True),
         use_bias=True)
 
     conv4 = tf.layers.conv2d(
@@ -114,8 +114,8 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         padding="same",
         activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv2/conv2_2/biases')),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv2/conv2_2/weights')),
+        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv2/conv2_2/biases'), verify_shape=True),
+        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv2/conv2_2/weights'), verify_shape=True),
         use_bias=True)
 
     # Pooling Layer #2
@@ -130,8 +130,8 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         padding="same",
         activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv3/conv3_1/biases')),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv3/conv3_1/weights')),
+        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv3/conv3_1/biases'),verify_shape=True),
+        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv3/conv3_1/weights'),verify_shape=True),
         use_bias=True)
 
     conv6 = tf.layers.conv2d(
@@ -141,8 +141,8 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         padding="same",
         activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv3/conv3_2/biases')),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv3/conv3_2/weights')),
+        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv3/conv3_2/biases'),verify_shape=True ),
+        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv3/conv3_2/weights'),verify_shape=True),
         use_bias=True)
 
     conv7 = tf.layers.conv2d(
@@ -152,8 +152,8 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         padding="same",
         activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv3/conv3_3/biases')),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv3/conv3_3/weights')),
+        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv3/conv3_3/biases'), verify_shape=True),
+        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv3/conv3_3/weights'), verify_shape=True),
         use_bias=True)
 
     # Pooling Layer #3
@@ -168,8 +168,8 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         padding="same",
         activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv4/conv4_1/biases')),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv4/conv4_1/weights')),
+        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv4/conv4_1/biases'), verify_shape=True),
+        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv4/conv4_1/weights'), verify_shape=True),
         use_bias=True)
 
     conv8 = tf.layers.conv2d(
@@ -179,8 +179,8 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         padding="same",
         activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv4/conv4_2/biases')),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv4/conv4_2/weights')),
+        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv4/conv4_2/biases'), verify_shape=True),
+        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv4/conv4_2/weights'), verify_shape=True),
         use_bias=True)
 
     conv9 = tf.layers.conv2d(
@@ -190,8 +190,8 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         padding="same",
         activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv4/conv4_3/biases')),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv4/conv4_3/weights')),
+        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv4/conv4_3/biases'), verify_shape=True),
+        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv4/conv4_3/weights'), verify_shape=True),
         use_bias=True)
 
     # Pooling Layer #3
@@ -206,8 +206,8 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         padding="same",
         activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv5/conv5_1/biases')),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv5/conv5_1/weights')),
+        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv5/conv5_1/biases'), verify_shape=True),
+        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv5/conv5_1/weights'), verify_shape=True),
         use_bias=True)
 
     conv11 = tf.layers.conv2d(
@@ -217,8 +217,8 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         padding="same",
         activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv5/conv5_2/biases')),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv5/conv5_2/weights')),
+        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv5/conv5_2/biases'), verify_shape=True),
+        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv5/conv5_2/weights'), verify_shape=True),
         use_bias=True)
 
     conv12 = tf.layers.conv2d(
@@ -228,8 +228,8 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         padding="same",
         activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv5/conv5_3/biases')),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv5/conv5_3/weights')),
+        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv5/conv5_3/biases'), verify_shape=True),
+        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv5/conv5_3/weights'), verify_shape=True),
         use_bias=True)
 
     # Pooling Layer #3
@@ -242,20 +242,22 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
 
     dense1 = tf.layers.dense(inputs=pool5_flat, units=4096,
                              activation=tf.nn.relu,
-                             bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/fc6/biases')),
-                             kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/fc6/weights')),
+                             bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/fc6/biases'), verify_shape=True),
+                             kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/fc6/weights'), verify_shape=True),
                              use_bias=True)
 
     # Dense Layer 2, FC7
     dense2 = tf.layers.dense(inputs=dense1, units=4096,
                              activation=tf.nn.relu,
-                             bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/fc7/biases')),
-                             kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/fc7/weights')),
+                             bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/fc7/biases'), verify_shape=True),
+                             kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/fc7/weights'), verify_shape=True),
                              use_bias=True)
 
+    dense3 = tf.layers.dense(inputs=dense2, units=1000,
+                             use_bias=True)
 
     # Logits Layer, FC 8
-    logits = tf.layers.dense(inputs=dense2, units=num_classes)
+    logits = tf.layers.dense(inputs=dense3, units=num_classes)
 
     probs = tf.sigmoid(logits, name="sigmoid_tensor")
     pred_float = tf.greater_equal(probs, 0.5)
