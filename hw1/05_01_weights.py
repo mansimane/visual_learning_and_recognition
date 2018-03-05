@@ -15,7 +15,7 @@ from functools import partial
 from eval import compute_map
 #import models
 from tensorflow.core.framework import summary_pb2
-
+from funcs import *
 tf.logging.set_verbosity(tf.logging.INFO)
 
 CLASS_NAMES = [
@@ -160,8 +160,6 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         #
         "probabilities": probs
     }
-
-
 
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)

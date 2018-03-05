@@ -237,27 +237,43 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
 
     # Dense Layer 1, FC 6
 #    pool3_flat = tf.reshape(pool2, [-1, 64 * 64 * 64]) #*** use flatten?
-    pool5_flat = tf.contrib.layers.flatten(pool5, outputs_collections=None, scope=None) #*** use flatten?
+    #pool5_flat = tf.contrib.layers.flatten(pool5, outputs_collections=None, scope=None) #*** use flatten?
 
 
-    dense1 = tf.layers.dense(inputs=pool5_flat, units=4096,
-                             activation=tf.nn.relu,
+    dense1 = tf.layers.conv2d(inputs=pool5, filters=4096,
+                              kernel_size=[7, 7],
+                              padding="same",
+                              activation=tf.nn.relu,
                              bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/fc6/biases'), verify_shape=True),
                              kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/fc6/weights'), verify_shape=True),
                              use_bias=True)
 
+    dropout1 = tf.layers.dropout(
+        inputs=dense1, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN)
+
     # Dense Layer 2, FC7
-    dense2 = tf.layers.dense(inputs=dense1, units=4096,
-                             activation=tf.nn.relu,
+    dense2 = tf.layers.conv2d(inputs=dropout1, filters=4096,
+                              kernel_size=[1, 1],
+                              padding="same",
+                              activation=tf.nn.relu,
                              bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/fc7/biases'), verify_shape=True),
                              kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/fc7/weights'), verify_shape=True),
                              use_bias=True)
 
-    dense3 = tf.layers.dense(inputs=dense2, units=1000,
-                             use_bias=True)
+    dropout2 = tf.layers.dropout(
+        inputs=dense2, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN)
+
+    dense3 = tf.layers.conv2d(inputs=dropout2, filters=1000,
+                              activation=tf.nn.relu,
+                              kernel_size=[1, 1],
+                              padding="same",
+                              use_bias=True)
+
+    dropout3 = tf.layers.dropout(
+        inputs=dense3, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN)
 
     # Logits Layer, FC 8
-    logits = tf.layers.dense(inputs=dense3, units=num_classes)
+    logits = tf.layers.dense(inputs=dropout3, units=num_classes)
 
     probs = tf.sigmoid(logits, name="sigmoid_tensor")
     pred_float = tf.greater_equal(probs, 0.5)
