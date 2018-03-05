@@ -45,8 +45,8 @@ BATCH_SIZE = 10
 no_of_iters = 4000
 no_of_pts = 30
 no_of_steps = no_of_iters / no_of_pts
-log_dir = "/home/ubuntu/04_pascal_fine_tune"
-reader = tf.train.NewCheckpointReader('/home/ubuntu/code/vgg_16.ckpt')
+log_dir = "/home/ubuntu/assignments/04_pascal_fine_tune"
+reader = tf.train.NewCheckpointReader('/home/ubuntu/assignments/vgg_16.ckpt')
 #Local
 # init_path = tf.train.NewCheckpointReader('vgg_16.ckpt')
 
@@ -427,25 +427,25 @@ def main():
     args = parse_args()
 
     # Load training and eval data
-    # train_data, train_labels, train_weights = load_pascal(
-    #     args.data_dir, split='trainval')
-    # np.save(os.path.join(args.data_dir, 'trainval' + '_data_images'), train_data)
-    # np.save(os.path.join(args.data_dir, 'trainval' + '_data_labels'), train_labels)
-    # np.save(os.path.join(args.data_dir, 'trainval' + '_data_weights'), train_weights)
+    train_data, train_labels, train_weights = load_pascal(
+         args.data_dir, split='trainval')
+    np.save(os.path.join(args.data_dir, 'trainval' + '_data_images'), train_data)
+    np.save(os.path.join(args.data_dir, 'trainval' + '_data_labels'), train_labels)
+    np.save(os.path.join(args.data_dir, 'trainval' + '_data_weights'), train_weights)
 
-    train_data = np.load(os.path.join(args.data_dir, 'trainval' + '_data_images.npy'))
-    train_labels = np.load(os.path.join(args.data_dir, 'trainval' + '_data_labels.npy'))
-    train_weights = np.load(os.path.join(args.data_dir, 'trainval' + '_data_weights.npy'))
+    #train_data = np.load(os.path.join(args.data_dir, 'trainval' + '_data_images.npy'))
+    #train_labels = np.load(os.path.join(args.data_dir, 'trainval' + '_data_labels.npy'))
+    #train_weights = np.load(os.path.join(args.data_dir, 'trainval' + '_data_weights.npy'))
 
-    # eval_data, eval_labels, eval_weights = load_pascal(
-    #     args.data_dir, split='test')
-    #
-    # np.save(os.path.join(args.data_dir, 'test' + '_data_images'), eval_data)
-    # np.save(os.path.join(args.data_dir, 'test' + '_data_labels'), eval_labels)
-    # np.save(os.path.join(args.data_dir, 'test' + '_data_weights'), eval_weights)
-    eval_data = np.load(os.path.join(args.data_dir, 'test' + '_data_images.npy'))
-    eval_labels = np.load(os.path.join(args.data_dir, 'test' + '_data_labels.npy'))
-    eval_weights = np.load(os.path.join(args.data_dir, 'test' + '_data_weights.npy'))
+    eval_data, eval_labels, eval_weights = load_pascal(
+        args.data_dir, split='test')
+    
+    np.save(os.path.join(args.data_dir, 'test' + '_data_images'), eval_data)
+    np.save(os.path.join(args.data_dir, 'test' + '_data_labels'), eval_labels)
+    np.save(os.path.join(args.data_dir, 'test' + '_data_weights'), eval_weights)
+    #eval_data = np.load(os.path.join(args.data_dir, 'test' + '_data_images.npy'))
+    #eval_labels = np.load(os.path.join(args.data_dir, 'test' + '_data_labels.npy'))
+    #eval_weights = np.load(os.path.join(args.data_dir, 'test' + '_data_weights.npy'))
 
 
 
