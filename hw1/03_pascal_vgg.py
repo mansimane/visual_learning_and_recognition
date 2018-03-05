@@ -43,7 +43,7 @@ CLASS_NAMES = [
 num_classes = 20
 BATCH_SIZE = 10
 no_of_iters = 10000
-no_of_pts = 10
+no_of_pts = 20
 no_of_steps = no_of_iters / no_of_pts
 log_dir = "/home/ubuntu/code/03_pascal_model_scratch_with_norm"
 
