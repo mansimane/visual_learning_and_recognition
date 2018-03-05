@@ -42,10 +42,10 @@ CLASS_NAMES = [
 
 num_classes = 20
 BATCH_SIZE = 10
-no_of_iters = 100
-no_of_pts = 100
+no_of_iters = 2
+no_of_pts = 2
 no_of_steps = no_of_iters / no_of_pts
-log_dir = "/tmp/04_pascal_fine_tune"
+log_dir = "/home/ubuntu/04_pascal_fine_tune"
 reader = tf.train.NewCheckpointReader('/home/ubuntu/code/vgg_16.ckpt')
 #Local
 # init_path = tf.train.NewCheckpointReader('vgg_16.ckpt')

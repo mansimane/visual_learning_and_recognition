@@ -42,8 +42,8 @@ CLASS_NAMES = [
 
 num_classes = 20
 BATCH_SIZE = 10
-no_of_iters = 1000
-no_of_pts = 50
+no_of_iters = 10000
+no_of_pts = 10
 no_of_steps = no_of_iters / no_of_pts
 log_dir = "/home/ubuntu/code/03_pascal_model_scratch_with_norm"
 
@@ -269,7 +269,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
             tf.train.get_global_step(),  # Current index into the dataset.
             10000,  # Decay step.
             0.5,  # Decay rate.
-            staircase=True)
+            staircase=False)
 
         tf.summary.scalar('learning_rate', learning_rate)
 
