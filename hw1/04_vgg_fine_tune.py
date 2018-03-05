@@ -42,8 +42,8 @@ CLASS_NAMES = [
 
 num_classes = 20
 BATCH_SIZE = 10
-no_of_iters = 2
-no_of_pts = 2
+no_of_iters = 4000
+no_of_pts = 30
 no_of_steps = no_of_iters / no_of_pts
 log_dir = "/home/ubuntu/04_pascal_fine_tune"
 reader = tf.train.NewCheckpointReader('/home/ubuntu/code/vgg_16.ckpt')
@@ -285,10 +285,10 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         #optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
         learning_rate = tf.train.exponential_decay(
             0.0001,  # Base learning rate.
-            batch_no * BATCH_SIZE,  # Current index into the dataset.
+            tf.train.get_global_step(),  # Current index into the dataset.
             1000,  # Decay step.
             0.05,  # Decay rate.
-            staircase=True)
+            staircase=False)
 
         tf.summary.scalar('learning_rate', learning_rate)
 
@@ -457,7 +457,7 @@ def main():
     # logging loss
     tensors_to_log = {"loss": "loss"}
     logging_hook = tf.train.LoggingTensorHook(
-        tensors=tensors_to_log, every_n_iter=10)
+        tensors=tensors_to_log, every_n_iter=no_of_steps)
 
     # summary_hook = tf.train.SummarySaverHook(
     #     SAVE_EVERY_N_STEPS,

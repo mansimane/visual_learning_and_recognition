@@ -438,7 +438,7 @@ def main():
     # logging loss
     tensors_to_log = {"loss": "loss"}
     logging_hook = tf.train.LoggingTensorHook(
-        tensors=tensors_to_log, every_n_iter=10)
+        tensors=tensors_to_log, every_n_iter=no_of_steps)
 
     # summary_hook = tf.train.SummarySaverHook(
     #     SAVE_EVERY_N_STEPS,
