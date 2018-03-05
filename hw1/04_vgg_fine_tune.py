@@ -253,7 +253,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
 
     # Dense Layer 2, FC7
     dense2 = tf.layers.conv2d(inputs=dropout1, filters=4096,
-                              kernel_size=[1, 1],
+                              kernel_size=[7, 7],
                               padding="same",
                               activation=tf.nn.relu,
                              bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/fc7/biases'), verify_shape=True),
