@@ -70,211 +70,233 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
     #     tensor = reader.get_tensor(old_name)
     ####### BLOCK 1
     # Convolutional Layer #1
+
+    # Convolutional Layer #1
     conv1 = tf.layers.conv2d(
-        inputs=norm_imgs,
+        inputs=input_layer,
         filters=64,
         kernel_size=[3, 3],
         padding="same",
-        activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv1/conv1_1/biases'),verify_shape=True),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv1/conv1_1/weights'),verify_shape=True),
-        use_bias=True)
+        activation=tf.nn.relu,
+        kernel_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv1/conv1_1/weights'),
+                                                   verify_shape=True),
+        bias_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv1/conv1_1/biases'),
+                                                 verify_shape=True))
 
+    # Convolutional Layer #2
     conv2 = tf.layers.conv2d(
         inputs=conv1,
         filters=64,
         kernel_size=[3, 3],
         padding="same",
-        activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv1/conv1_2/biases'), verify_shape=True),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv1/conv1_2/weights'), verify_shape=True),
-        use_bias=True)
+        activation=tf.nn.relu,
+        kernel_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv1/conv1_2/weights'),
+                                                   verify_shape=True),
+        bias_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv1/conv1_2/biases'),
+                                                 verify_shape=True))
 
     # Pooling Layer #1
-    pool1 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)  #
+    pool1 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
 
-    ####### BLOCK 2
+    #Block 1
     # Convolutional Layer #3
     conv3 = tf.layers.conv2d(
         inputs=pool1,
         filters=128,
         kernel_size=[3, 3],
         padding="same",
-        activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv2/conv2_1/biases'), verify_shape=True),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv2/conv2_1/weights'), verify_shape=True),
-        use_bias=True)
+        activation=tf.nn.relu,
+        kernel_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv2/conv2_1/weights'),
+                                                   verify_shape=True),
+        bias_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv2/conv2_1/biases'),
+                                                 verify_shape=True))
 
+    # Convolutional Layer #4
     conv4 = tf.layers.conv2d(
         inputs=conv3,
         filters=128,
         kernel_size=[3, 3],
         padding="same",
-        activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv2/conv2_2/biases'), verify_shape=True),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv2/conv2_2/weights'), verify_shape=True),
-        use_bias=True)
+        activation=tf.nn.relu,
+        kernel_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv2/conv2_2/weights'),
+                                                   verify_shape=True),
+        bias_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv2/conv2_2/biases'),
+                                                 verify_shape=True))
 
-    # Pooling Layer #2
+    # Pooling layer 2
     pool2 = tf.layers.max_pooling2d(inputs=conv4, pool_size=[2, 2], strides=2)
+    #Block 2
 
-    ####### BLOCK 3###
-    # Convolutional Layer #3
+    # Convolutional Layer #5
     conv5 = tf.layers.conv2d(
         inputs=pool2,
         filters=256,
         kernel_size=[3, 3],
         padding="same",
-        activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv3/conv3_1/biases'),verify_shape=True),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv3/conv3_1/weights'),verify_shape=True),
-        use_bias=True)
+        activation=tf.nn.relu,
+        kernel_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv3/conv3_1/weights'),
+                                                   verify_shape=True),
+        bias_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv3/conv3_1/biases'),
+                                                 verify_shape=True))
 
+    # Convolutional Layer #6
     conv6 = tf.layers.conv2d(
         inputs=conv5,
         filters=256,
         kernel_size=[3, 3],
         padding="same",
-        activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv3/conv3_2/biases'),verify_shape=True ),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv3/conv3_2/weights'),verify_shape=True),
-        use_bias=True)
+        activation=tf.nn.relu,
+        kernel_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv3/conv3_2/weights'),
+                                                   verify_shape=True),
+        bias_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv3/conv3_2/biases'),
+                                                 verify_shape=True))
 
+    # Convolutional Layer #7
     conv7 = tf.layers.conv2d(
         inputs=conv6,
         filters=256,
         kernel_size=[3, 3],
         padding="same",
-        activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv3/conv3_3/biases'), verify_shape=True),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv3/conv3_3/weights'), verify_shape=True),
-        use_bias=True)
+        activation=tf.nn.relu,
+        kernel_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv3/conv3_3/weights'),
+                                                   verify_shape=True),
+        bias_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv3/conv3_3/biases'),
+                                                 verify_shape=True))
 
-    # Pooling Layer #3
+    # Pooling layer 3
     pool3 = tf.layers.max_pooling2d(inputs=conv7, pool_size=[2, 2], strides=2)
+    #Block 3
 
-    ####### BLOCK 4 ###
-    # Convolutional Layer #3
+    # Convolutional Layer #8
     conv8 = tf.layers.conv2d(
         inputs=pool3,
         filters=512,
         kernel_size=[3, 3],
         padding="same",
-        activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv4/conv4_1/biases'), verify_shape=True),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv4/conv4_1/weights'), verify_shape=True),
-        use_bias=True)
+        activation=tf.nn.relu,
+        kernel_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv4/conv4_1/weights'),
+                                                   verify_shape=True),
+        bias_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv4/conv4_1/biases'),
+                                                 verify_shape=True))
 
+    # Convolutional Layer #9
     conv9 = tf.layers.conv2d(
         inputs=conv8,
         filters=512,
         kernel_size=[3, 3],
         padding="same",
-        activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv4/conv4_2/biases'), verify_shape=True),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv4/conv4_2/weights'), verify_shape=True),
-        use_bias=True)
+        activation=tf.nn.relu,
+        kernel_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv4/conv4_2/weights'),
+                                                   verify_shape=True),
+        bias_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv4/conv4_2/biases'),
+                                                 verify_shape=True))
 
+    # Convolutional Layer #10
     conv10 = tf.layers.conv2d(
         inputs=conv9,
         filters=512,
         kernel_size=[3, 3],
         padding="same",
-        activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv4/conv4_3/biases'), verify_shape=True),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv4/conv4_3/weights'), verify_shape=True),
-        use_bias=True)
+        activation=tf.nn.relu,
+        kernel_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv4/conv4_3/weights'),
+                                                   verify_shape=True),
+        bias_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv4/conv4_3/biases'),
+                                                 verify_shape=True))
 
-    # Pooling Layer #3
+    # Pooling layer 4
     pool4 = tf.layers.max_pooling2d(inputs=conv10, pool_size=[2, 2], strides=2)
 
-    ####### BLOCK 5 ###
-    # Convolutional Layer #10
+    #Block 4
+    # Convolutional Layer #11
     conv11 = tf.layers.conv2d(
         inputs=pool4,
         filters=512,
         kernel_size=[3, 3],
         padding="same",
-        activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv5/conv5_1/biases'), verify_shape=True),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv5/conv5_1/weights'), verify_shape=True),
-        use_bias=True)
+        activation=tf.nn.relu,
+        kernel_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv5/conv5_1/weights'),
+                                                   verify_shape=True),
+        bias_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv5/conv5_1/biases'),
+                                                 verify_shape=True))
 
+    # Convolutional Layer #12
     conv12 = tf.layers.conv2d(
         inputs=conv11,
         filters=512,
         kernel_size=[3, 3],
         padding="same",
-        activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv5/conv5_2/biases'), verify_shape=True),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv5/conv5_2/weights'), verify_shape=True),
-        use_bias=True)
+        activation=tf.nn.relu,
+        kernel_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv5/conv5_2/weights'),
+                                                   verify_shape=True),
+        bias_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv5/conv5_2/biases'),
+                                                 verify_shape=True))
 
+    # Convolutional Layer #13
     conv13 = tf.layers.conv2d(
         inputs=conv12,
         filters=512,
         kernel_size=[3, 3],
         padding="same",
-        activation=tf.nn.relu,
         strides=1,
-        bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv5/conv5_3/biases'), verify_shape=True),
-        kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/conv5/conv5_3/weights'), verify_shape=True),
-        use_bias=True)
+        activation=tf.nn.relu,
+        kernel_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv5/conv5_3/weights'),
+                                                   verify_shape=True),
+        bias_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/conv5/conv5_3/biases'),
+                                                 verify_shape=True))
 
-    # Pooling Layer #3
+    # Pooling layer 5
     pool5 = tf.layers.max_pooling2d(inputs=conv13, pool_size=[2, 2], strides=2)
+    #Block 5
 
-    # Dense Layer 1, FC 6
-#    pool3_flat = tf.reshape(pool2, [-1, 64 * 64 * 64]) #*** use flatten?
-    #pool5_flat = tf.contrib.layers.flatten(pool5, outputs_collections=None, scope=None) #*** use flatten?
-
-
-    dense1 = tf.layers.conv2d(inputs=pool5, filters=4096,
-                              kernel_size=[7, 7],
-                              padding="same",
+    dense1 = tf.layers.conv2d(inputs=pool5,
                               activation=tf.nn.relu,
-                             bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/fc6/biases'), verify_shape=True),
-                             kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/fc6/weights'), verify_shape=True),
-                             use_bias=True)
+                              filters=4096,  # this specifies the number of channels in the output layer
+                              kernel_size=[7, 7],
+                              strides=[1, 1],
+                              padding="same",
+                              kernel_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/fc6/weights'),
+                                                                         verify_shape=True),
+                              bias_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/fc6/biases'),
+                                                                       verify_shape=True))
 
     dropout1 = tf.layers.dropout(
         inputs=dense1, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN)
 
-    # Dense Layer 2, FC7
-    dense2 = tf.layers.conv2d(inputs=dropout1, filters=4096,
-                              kernel_size=[7, 7],
+    dense2 = tf.layers.conv2d(inputs=dropout1,
+                              filters=4096,  # this specifies the number of channels in the output layer
+                              kernel_size=[1, 1],
+                              strides=[1, 1],
                               padding="same",
                               activation=tf.nn.relu,
-                             bias_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/fc7/biases'), verify_shape=True),
-                             kernel_initializer=tf.constant_initializer(reader.get_tensor('vgg_16/fc7/weights'), verify_shape=True),
-                             use_bias=True)
+                              kernel_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/fc7/weights'),
+                                                                         verify_shape=True),
+                              bias_initializer=tf.constant_initializer(value=reader.get_tensor('vgg_16/fc7/biases'),
+                                                                       verify_shape=True))
 
     dropout2 = tf.layers.dropout(
         inputs=dense2, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN)
 
-    dense3 = tf.layers.conv2d(inputs=dropout2, filters=1000,
-                              activation=tf.nn.relu,
+    dense3 = tf.layers.conv2d(inputs=dropout2,
+                              filters=1000,
                               kernel_size=[1, 1],
+                              strides=[1, 1],
                               padding="same",
-                              use_bias=True)
+                              activation=tf.nn.relu)
 
-    dropout3 = tf.layers.dropout(
-        inputs=dense3, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN)
-
-    # Logits Layer, FC 8
-    logits = tf.layers.dense(inputs=dropout3, units=num_classes)
+    # Logits Layer
+    logits = tf.layers.dense(inputs=tf.contrib.layers.flatten(dense3), units=20)
 
     probs = tf.sigmoid(logits, name="sigmoid_tensor")
     pred_float = tf.greater_equal(probs, 0.5)
