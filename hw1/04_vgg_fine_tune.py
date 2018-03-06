@@ -60,6 +60,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
 
     input_layer = tf.reshape(features["x"], [-1, 256, 256, 3])
 
+
     flipped_imgs = tf.map_fn(lambda img: tf.image.random_flip_left_right(img), input_layer)
     distorted_image = tf.map_fn(lambda img: tf.random_crop(img, [224, 224, 3]), flipped_imgs)
     tf.summary.image("train_images", distorted_image, max_outputs=40)
