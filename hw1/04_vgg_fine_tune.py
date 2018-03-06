@@ -64,18 +64,23 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
     #
     #
     # norm_imgs = tf.map_fn(lambda frame: tf.image.per_image_standardization(frame), distorted_image)
-    smll = tf.reshape(features["x"], [-1, 224, 224, 3])
+    input_layer = tf.reshape(features["x"], [-1, 224, 224, 3])
 
     if mode == tf.estimator.ModeKeys.TRAIN:
+        flipped = tf.map_fn(lambda image: tf.image.random_flip_left_right(image), features["x"])
+        cropped = tf.map_fn(lambda image: tf.random_crop(image, size=[224, 224, 3]), features["x"])
 
-        flipped_imgs = tf.map_fn(lambda image: tf.image.random_flip_left_right(image), features["x"])
-        cropped_imgs = tf.map_fn(lambda image: tf.random_crop(image, size=[224, 224, 3]), features["x"])
+        fets = tf.concat([features["x"], flipped, cropped], axis=0)
+        # wts = tf.concat([features["w"],features["w"],features["w"]],axis = 0)
+        lbls = tf.concat([labels, labels, labels], axis=0)
 
-        fs = tf.concat([features["x"], flipped_imgs, cropped_imgs], axis=0)
-        ls = tf.concat([labels, labels, labels], axis=0)
+        feats = tf.random_shuffle(fets, seed=features["x"].shape[0] * 3)
+        # wtgs = tf.random_shuffle(wts,seed = features["x"].shape[0]*3)
+        lbels = tf.random_shuffle(lbls, seed=features["x"].shape[0] * 3)
 
-        shuffled = tf.random_shuffle(fs, seed=features["x"].shape[0] * 3)
-        labels = tf.random_shuffle(ls, seed=features["x"].shape[0] * 3)
+        features["x"] = feats
+        input_layer = features["x"]
+        labels = lbels
 
     # for old_name in reader.get_variable_to_shape_map():
     #     #print(old_name)
@@ -85,7 +90,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
 
     # Convolutional Layer #1
     conv1 = tf.layers.conv2d(
-        inputs=shuffled,
+        inputs=input_layer,
         filters=64,
         kernel_size=[3, 3],
         padding="same",
