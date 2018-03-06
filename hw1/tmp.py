@@ -331,7 +331,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         optimizer = tf.train.MomentumOptimizer(learning_rate=decay_learning_rate,
                                                momentum=0.9)
 
-        tf.summary.scalar("decayed_learning_rate", decay_learning_rate)
+        tf.summary.scalar("learning_rate", decay_learning_rate)
 
         grads_and_vars = optimizer.compute_gradients(loss)
 
