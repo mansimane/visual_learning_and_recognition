@@ -58,13 +58,21 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
     # Fine tuning: https://gist.github.com/leonidk/b0d21c8ed68c69abe985f713d0af15a1, line 268
     # ***crop size is 227?
 
-    input_layer = tf.reshape(features["x"], [-1, 256, 256, 3])
 
+    # distorted_image = tf.map_fn(lambda img: tf.random_crop(img, [224, 224, 3]), input_layer)
+    # flipped_imgs = tf.map_fn(lambda img: tf.image.random_flip_left_right(img), input_layer)
+    #
+    #
+    # norm_imgs = tf.map_fn(lambda frame: tf.image.per_image_standardization(frame), distorted_image)
 
-    flipped_imgs = tf.map_fn(lambda img: tf.image.random_flip_left_right(img), input_layer)
-    distorted_image = tf.map_fn(lambda img: tf.random_crop(img, [224, 224, 3]), flipped_imgs)
-    tf.summary.image("train_images", distorted_image, max_outputs=40)
-    norm_imgs = tf.map_fn(lambda frame: tf.image.per_image_standardization(frame), distorted_image)
+    flipped_imgs = tf.map_fn(lambda image: tf.image.random_flip_left_right(image), features["x"])
+    cropped_imgs = tf.map_fn(lambda image: tf.random_crop(image, size=[224, 224, 3]), features["x"])
+
+    fs = tf.concat([features["x"], flipped_imgs, cropped_imgs], axis=0)
+    ls = tf.concat([labels, labels, labels], axis=0)
+
+    shuffled = tf.random_shuffle(fs, seed=features["x"].shape[0] * 3)
+    labels = tf.random_shuffle(ls, seed=features["x"].shape[0] * 3)
 
     # for old_name in reader.get_variable_to_shape_map():
     #     #print(old_name)
@@ -74,7 +82,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
 
     # Convolutional Layer #1
     conv1 = tf.layers.conv2d(
-        inputs=norm_imgs,
+        inputs=shuffled,
         filters=64,
         kernel_size=[3, 3],
         padding="same",
