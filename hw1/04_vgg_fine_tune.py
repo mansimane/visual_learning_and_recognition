@@ -73,7 +73,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
 
     # Convolutional Layer #1
     conv1 = tf.layers.conv2d(
-        inputs=input_layer,
+        inputs=norm_imgs,
         filters=64,
         kernel_size=[3, 3],
         padding="same",
@@ -172,6 +172,8 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
 
     # Pooling layer 3
     pool3 = tf.layers.max_pooling2d(inputs=conv7, pool_size=[2, 2], strides=2)
+
+
     #Block 3
 
     # Convolutional Layer #8
