@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Mar  5 02:07:46 2018
+
+@author: snigdha
+"""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -18,7 +25,7 @@ import pickle
 from eval import compute_map
 
 # import models
-
+log_dir = '/home/ubuntu/assignments/04_pascal_fine_tune'
 tf.logging.set_verbosity(tf.logging.INFO)
 
 CLASS_NAMES = [
@@ -44,13 +51,7 @@ CLASS_NAMES = [
     'tvmonitor',
 ]
 
-num_classes = 20
-BATCH_SIZE = 10
-no_of_iters = 4000
-no_of_pts = 10
-no_of_steps = no_of_iters / no_of_pts
-log_dir = "/home/ubuntu/assignments/04_pascal_fine_tune"
-rdr = tf.train.NewCheckpointReader('/home/ubuntu/assignments/vgg_16.ckpt')
+rdr = tf.train.NewCheckpointReader("/home/ubuntu/assignments/vgg_16.ckp")
 
 
 def cnn_model_fn(features, labels, mode, num_classes=20):
@@ -65,16 +66,18 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         cropped = tf.map_fn(lambda image: tf.random_crop(image, size=[224, 224, 3]), features["x"])
 
         fets = tf.concat([features["x"], flipped, cropped], axis=0)
+        # wts = tf.concat([features["w"],features["w"],features["w"]],axis = 0)
         lbls = tf.concat([labels, labels, labels], axis=0)
 
         feats = tf.random_shuffle(fets, seed=features["x"].shape[0] * 3)
+        # wtgs = tf.random_shuffle(wts,seed = features["x"].shape[0]*3)
         lbels = tf.random_shuffle(lbls, seed=features["x"].shape[0] * 3)
 
         features["x"] = feats
         input_layer = features["x"]
         labels = lbels
 
-    tf.summary.image("images", input_layer)
+    tf.summary.image("Training_images", input_layer)
 
     # Convolutional Layer #1
     conv1 = tf.layers.conv2d(
@@ -105,7 +108,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
     # Pooling Layer #1
     pool1 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
 
-    # Convolutional Layer #3
+    # Convolutional Layer #3 
     conv3 = tf.layers.conv2d(
         inputs=pool1,
         filters=128,
@@ -118,7 +121,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         bias_initializer=tf.constant_initializer(value=rdr.get_tensor('vgg_16/conv2/conv2_1/biases'),
                                                  verify_shape=True))
 
-    # Convolutional Layer #4
+    # Convolutional Layer #4 
     conv4 = tf.layers.conv2d(
         inputs=conv3,
         filters=128,
@@ -134,7 +137,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
     # Pooling layer 2
     pool2 = tf.layers.max_pooling2d(inputs=conv4, pool_size=[2, 2], strides=2)
 
-    # Convolutional Layer #5
+    # Convolutional Layer #5 
     conv5 = tf.layers.conv2d(
         inputs=pool2,
         filters=256,
@@ -147,7 +150,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         bias_initializer=tf.constant_initializer(value=rdr.get_tensor('vgg_16/conv3/conv3_1/biases'),
                                                  verify_shape=True))
 
-    # Convolutional Layer #6
+    # Convolutional Layer #6 
     conv6 = tf.layers.conv2d(
         inputs=conv5,
         filters=256,
@@ -176,7 +179,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
     # Pooling layer 3
     pool3 = tf.layers.max_pooling2d(inputs=conv7, pool_size=[2, 2], strides=2)
 
-    # Convolutional Layer #8
+    # Convolutional Layer #8 
     conv8 = tf.layers.conv2d(
         inputs=pool3,
         filters=512,
@@ -312,8 +315,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
     # Calculate Loss (for both TRAIN and EVAL modes)
 
     loss = tf.identity(tf.losses.sigmoid_cross_entropy(
-        multi_class_labels=labels, logits=logits), name='loss')
-
+        labels, logits=logits), name='loss')
     # Configure the Training Op (for TRAIN mode)
     if mode == tf.estimator.ModeKeys.TRAIN:
 
@@ -329,7 +331,7 @@ def cnn_model_fn(features, labels, mode, num_classes=20):
         optimizer = tf.train.MomentumOptimizer(learning_rate=decay_learning_rate,
                                                momentum=0.9)
 
-        tf.summary.scalar("learning_rate", decay_learning_rate)
+        tf.summary.scalar("decayed_learning_rate", decay_learning_rate)
 
         grads_and_vars = optimizer.compute_gradients(loss)
 
@@ -386,7 +388,7 @@ def summary_var(log_dir, name, val, step):
     writer.flush()
 
 
-def load_pascal(data_dir, split='train'):
+def load_pascal_afs(data_dir, split='train'):
     """
     Function to read images from PASCAL data folder.
     Args:
@@ -401,123 +403,142 @@ def load_pascal(data_dir, split='train'):
             are active in that image.
         weights: (np.ndarray): An array of shape (N, 20) of
             type np.int32, with 0s and 1s; 1s for classes that
-            are confidently labeled and 0s for classes that
+            are confidently labeled and 0s for classes that 
             are ambiguous.
     """
-    # Wrote this function
-    H = 256
-    W = 256
+    class_dict = {}
+    k = len(CLASS_NAMES)
+    # split ='train'
 
-    N_dict = {'train': 2501, 'val': 2510, 'trainval': 5011, 'test': 4952}
-    N = N_dict[split]
+    label_path = data_dir + "ImageSets/Main/"
+    im_path = data_dir + "JPEGImages/"
 
-    images = np.zeros((N, H, W, 3), dtype=np.float32)
-    labels = np.zeros((N, num_classes), dtype=np.int32)
-    weights = np.zeros((N, num_classes), dtype=np.int32)
+    for i, name in enumerate(CLASS_NAMES):
+        class_dict[i] = name
 
-    #Load Images
-    file_name = data_dir + "ImageSets/Main/" + split + '.txt'
-    with open(file_name, 'r') as image_lst_file:
-        i=0
-        for line in image_lst_file.readlines():
-            img_no = line.strip('\n')
-            image_name = data_dir + 'JPEGImages/' + img_no + '.jpg'
-            img = Image.open(image_name)
-            img = img.resize((H, W), Image.ANTIALIAS)
-            imgarr = np.asarray(img, dtype=np.float32)
-            images[i, :, :, :] = imgarr
-            i += 1
+        with open(label_path + name + "_" + split + ".txt") as f:
+            a = f.read().split()
+            class_label = (np.array(a[1::2], dtype=np.int32) > 0) * 1
+            class_weight = np.abs(np.array(a[1::2], dtype=np.int32))
 
-    for i in range(len(CLASS_NAMES)):
-        cls = CLASS_NAMES[i]
-        file_name = data_dir + "ImageSets/Main/" + cls + '_' + split + '.txt'
-        with open(file_name, 'r') as image_lst_file:
-            im_idx = 0
-            for line in image_lst_file.readlines():
-                _, is_present = line.strip('\n').split()
-                is_present = int(is_present)
-                if is_present == 1:
-                    labels[im_idx][i] = 1
+            if i == 0:
+                image_name = a[::2]
+                N = len(image_name)
+                labels = np.zeros([N, k], dtype=np.int32)
+                weights = np.zeros([N, k], dtype=np.int32)
+                images = np.zeros([N, 224, 224, 3], dtype=np.float32)
 
-                if is_present != 0:
-                    weights[im_idx][i] = 1
-                im_idx += 1
+                # get the images 
+                for n in range(N):
+                    I = np.asarray(Image.open(im_path + image_name[n] + ".jpg").resize([224, 224]))
+                    images[n, :, :, :] = I
+
+        labels[:, i] = class_label
+        weights[:, i] = class_weight
+
+    labels = np.array(labels, dtype=np.int32)
+    weights = np.array(weights, dtype=np.int32)
+    images = np.array(images, dtype=np.float32)
+
     return images, labels, weights
 
+
+def load_pascal(data_dir, split='train'):
+    '''
+    Function to read images from PASCAL data folder.
+    Args:
+        data_dir (str): Path to the VOC2007 directory.
+        split (str): train/val/trainval split to use.
+    Returns:
+        images (np.ndarray): Return a np.float32 array of
+            shape (N, H, W, 3), where H, W are 224px each,
+            and each image is in RGB format.
+        labels (np.ndarray): An array of shape (N, 20) of
+            type np.int32, with 0s and 1s; 1s for classes that
+            are active in that image.
+        weights: (np.ndarray): An array of shape (N, 20) of
+            type np.int32, with 0s and 1s; 1s for classes that
+            are confidently labeled and 0s for classes that 
+            are ambiguous.
+   '''
+
+    wts = []
+    lbels = []
+    # len_CN = len(CLASS_NAMES)
+    for i in CLASS_NAMES:
+        with open(data_dir + '/ImageSets/Main/' + i + '_' + split + '.txt') as f1:
+            a1 = f1.read().split()
+            img = a1[::2]
+            print(img)
+            N = len(img)
+            l = a1[1::2]
+            print("l", l)
+            wts = np.append(wts, np.abs(np.array(l, dtype=np.int32)), axis=0)
+            print("wts", wts)
+            lbels = np.append(lbels, (np.array(l, dtype=np.int32) > 0) * 1, axis=0)
+            print("lbels", lbels)
+    weights = np.reshape(wts, (N, 20))
+    labels = np.reshape(lbels, (N, 20))
+
+    no_i = len(img)
+    # print(Num)
+    images = np.ndarray(shape=(no_i, 256, 256, 3), dtype=np.float32)
+    for i in img:
+        N = len(img)
+        im1 = Image.open(data_dir + '/JPEGImages/' + i + '.jpg')
+        im2 = im1.convert('RGB')
+        im3 = np.asarray(im2)
+        im4 = np.resize(im3, (256, 256, 3))
+        images[1:no_i:1, :, :, :] = np.abs(np.array(im4, dtype=np.int32))
+
+    print("ok")
+    return (images, labels, weights)
 
 
 def main():
     args = parse_args()
-
     # Load training and eval data
-    train_data, train_labels, train_weights = load_pascal(
+    train_data, train_labels, train_weights = load_pascal_afs(
         args.data_dir, split='trainval')
-    np.save(os.path.join(args.data_dir, 'trainval' + '_data_images'), train_data)
-    np.save(os.path.join(args.data_dir, 'trainval' + '_data_labels'), train_labels)
-    np.save(os.path.join(args.data_dir, 'trainval' + '_data_weights'), train_weights)
-
-    # train_data = np.load(os.path.join(args.data_dir, 'trainval' + '_data_images.npy'))
-    # train_labels = np.load(os.path.join(args.data_dir, 'trainval' + '_data_labels.npy'))
-    # train_weights = np.load(os.path.join(args.data_dir, 'trainval' + '_data_weights.npy'))
-
-    eval_data, eval_labels, eval_weights = load_pascal(
+    eval_data, eval_labels, eval_weights = load_pascal_afs(
         args.data_dir, split='test')
-
-    np.save(os.path.join(args.data_dir, 'test' + '_data_images'), eval_data)
-    np.save(os.path.join(args.data_dir, 'test' + '_data_labels'), eval_labels)
-    np.save(os.path.join(args.data_dir, 'test' + '_data_weights'), eval_weights)
-    # eval_data = np.load(os.path.join(args.data_dir, 'test' + '_data_images.npy'))
-    # eval_labels = np.load(os.path.join(args.data_dir, 'test' + '_data_labels.npy'))
-    # eval_weights = np.load(os.path.join(args.data_dir, 'test' + '_data_weights.npy'))
-
-
 
     pascal_classifier = tf.estimator.Estimator(
         model_fn=partial(cnn_model_fn,
                          num_classes=train_labels.shape[1]),
         model_dir=log_dir)
-
-    # logging loss
     tensors_to_log = {"loss": "loss"}
     logging_hook = tf.train.LoggingTensorHook(
-        tensors=tensors_to_log, every_n_iter=no_of_steps)
+        tensors=tensors_to_log, every_n_iter=400)
 
-    # summary_hook = tf.train.SummarySaverHook(
-    #     SAVE_EVERY_N_STEPS,
-    #     output_dir='/tmp/tf',
-    #     summary_op=tf.summary.merge_all())
+    list22 = []
+    for i in range(0, 10):
 
-    # logging lr
-    # tensors_to_log2 = {"learning_rate": "learning_rate"}
-    # logging_hook2 = tf.train.LoggingTensorHook(
-    #     tensors=tensors_to_log2, every_n_iter=100)
+        # Train the model
+        train_input_fn = tf.estimator.inputs.numpy_input_fn(
+            x={"x": train_data, "w": train_weights},
+            y=train_labels,
+            batch_size=10,
+            num_epochs=None,
+            shuffle=True)
 
-    # Train the model
-    train_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x={"x": train_data, "w": train_weights},
-        y=train_labels,
-        batch_size=BATCH_SIZE,
-        num_epochs=None,
-        shuffle=True)
-
-    eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x={"x": eval_data, "w": eval_weights},
-        y=eval_labels,
-        num_epochs=1,
-        shuffle=False)
-
-    for i in range(no_of_pts):
         pascal_classifier.train(
             input_fn=train_input_fn,
-            steps=no_of_steps,
+            steps=400,
             hooks=[logging_hook])
+
         # Evaluate the model and print results
+        eval_input_fn = tf.estimator.inputs.numpy_input_fn(
+            x={"x": eval_data, "w": eval_weights},
+            y=eval_labels,
+            num_epochs=1,
+            shuffle=False)
+
         pred = list(pascal_classifier.predict(input_fn=eval_input_fn))
         pred = np.stack([p['probabilities'] for p in pred])
         rand_AP = compute_map(
             eval_labels, np.random.random(eval_labels.shape),
             eval_weights, average=None)
-
         print('Random AP: {} mAP'.format(np.mean(rand_AP)))
         gt_AP = compute_map(
             eval_labels, eval_labels, eval_weights, average=None)
@@ -527,9 +548,11 @@ def main():
         print('per class:')
         for cid, cname in enumerate(CLASS_NAMES):
             print('{}: {}'.format(cname, _get_el(AP, cid)))
+        list22.append(np.mean(AP))
+        summary_var("pascal_vggfinetune", "mAP", np.mean(AP), i * 400)
 
-        summary_var(log_dir=log_dir,
-                    name="mAP", val=np.mean(AP), step=i * no_of_steps)
+    with open('list22.pkl', 'wb') as fr2:
+        pickle.dump(list22, fr2)
 
 
 if __name__ == "__main__":

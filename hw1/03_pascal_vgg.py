@@ -404,7 +404,8 @@ def summary_var_lr(log_dir, name, val, step):
     writer.add_summary(summary_proto, step)
     writer.flush()
 
-def main():    args = parse_args()
+def main():
+    args = parse_args()
 
     # Load training and eval data
     # train_data, train_labels, train_weights = load_pascal(
@@ -488,7 +489,6 @@ def main():    args = parse_args()
 
         summary_var(log_dir=log_dir,
                     name="mAP", val=np.mean(AP), step=i*no_of_steps)
-
 
 
     #######  Image logging
