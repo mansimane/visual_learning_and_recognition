@@ -30,7 +30,7 @@ def is_image_file(filename):
 def find_classes(imdb):
     #TODO: classes: list of classes
     #TODO: class_to_idx: dictionary with keys=classes and values=class index
-
+    classes = imdb.classes
 
 
 
