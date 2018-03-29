@@ -10,7 +10,7 @@ import os
 import os.path
 import numpy as np
 #from myutils import *
-from torchvision.models import AlexNet
+import torchvision.models as models
 
 IMG_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm']
 
@@ -98,14 +98,14 @@ class LocalizerAlexNet(nn.Module):
             nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
             nn.ReLU(inplace=True)
           )
-        self.classifier = Sequential(
+        
+        self.classifier = nn.Sequential(
             nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1)),
             nn.ReLU(inplace=True),
             nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1)),
             nn.ReLU(inplace=True),
             nn.Conv2d(256, 20, kernel_size=(1, 1), stride=(1, 1))
           )
-
 
 
     def forward(self, x):
@@ -145,8 +145,11 @@ def localizer_alexnet(pretrained=False, **kwargs):
     #not
 
     if pretrained:
-        model_temp = torchvision.models.alexnet(pretrained=True)
-        model.features = model_temp.features
+        model_temp = models.alexnet(pretrained=True)
+        
+        
+        
+        #model.features = model_temp.features
         #model.load_state_dict(model_zoo.load_url(model_urls['alexnet']))
         
     return model
@@ -160,10 +163,6 @@ def localizer_alexnet_robust(pretrained=False, **kwargs):
     """
     model = LocalizerAlexNetRobust(**kwargs)
     #TODO: Ignore for now until instructed
-
-
-
-
 
 
     return model
