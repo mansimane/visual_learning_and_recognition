@@ -9,7 +9,7 @@ from PIL import Image
 import os
 import os.path
 import numpy as np
-from myutils import *
+#from myutils import *
 
 IMG_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm']
 
