@@ -10,6 +10,7 @@ import os
 import os.path
 import numpy as np
 #from myutils import *
+from torchvision.models import AlexNet
 
 IMG_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm']
 
@@ -31,8 +32,11 @@ def find_classes(imdb):
     #TODO: classes: list of classes
     #TODO: class_to_idx: dictionary with keys=classes and values=class index
     classes = imdb.classes
-
-
+    i = 0 
+    class_to_idx = {}
+    for cls in imdb.classes:
+        class_to_idx[cls] = i
+        i += 1
 
     return classes, class_to_idx
 
@@ -40,10 +44,12 @@ def find_classes(imdb):
 def make_dataset(imdb, class_to_idx):
     #TODO: return list of (image path, list(+ve class indices)) tuples
     #You will be using this in IMDBDataset
-
-
-
-
+    gt_roidb = imdb.gt_roidb()
+    images = [None]*len(gt_roidb)
+    for i in range(len(gt_roidb)):
+        path = imdb.image_path_at(i)
+        cls = [c for c in gt_roidb[i]['gt_classes']]
+        images[i] = (path,cls)
 
     return images
 
@@ -78,16 +84,35 @@ class LocalizerAlexNet(nn.Module):
         super(LocalizerAlexNet, self).__init__()
         #TODO: Define model
 
-
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=(11, 11), stride=(4, 4), padding=(2, 2)),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=(3, 3), stride=(2, 2), dilation=(1, 1), ceil_mode=False),
+            nn.Conv2d(64, 192, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2)),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=(3, 3), stride=(2, 2), dilation=(1, 1), ceil_mode=False),
+            nn.Conv2d(192, 384, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(384, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(inplace=True)
+          )
+        self.classifier = Sequential(
+            nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 20, kernel_size=(1, 1), stride=(1, 1))
+          )
 
 
 
     def forward(self, x):
         #TODO: Define forward pass
-
-
-
-
+        #do we need reshaping
+        x = self.features(x)
+        x = self.classifier(x)
         return x
 
 
@@ -119,10 +144,11 @@ def localizer_alexnet(pretrained=False, **kwargs):
     #TODO: Initialize weights correctly based on whether it is pretrained or
     #not
 
-
-
-
-
+    if pretrained:
+        model_temp = torchvision.models.alexnet(pretrained=True)
+        model.features = model_temp.features
+        #model.load_state_dict(model_zoo.load_url(model_urls['alexnet']))
+        
     return model
 
 def localizer_alexnet_robust(pretrained=False, **kwargs):
@@ -188,11 +214,9 @@ class IMDBDataset(data.Dataset):
         """
         # TODO: Write the rest of this function
 
-
-
-
-
-
+        
+        
+        
         if self.transform is not None:
             img = self.transform(img)
         if self.target_transform is not None:
