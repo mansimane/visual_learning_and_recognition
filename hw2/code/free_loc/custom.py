@@ -146,10 +146,13 @@ def localizer_alexnet(pretrained=False, **kwargs):
 
     if pretrained:
         model_temp = models.alexnet(pretrained=True)
+        model.features = nn.Sequential(*list(model_temp.features.children())[:-1])
         
-        
-        
-        #model.features = model_temp.features
+        #way to verify if pretrained model loaded or not
+#         for k, v in model.state_dict().iteritems():
+#             print("Layer {}".format(k))
+#             print(v)
+        #model.features = model_temp.features  #does not work as addes one more layer present form temp features
         #model.load_state_dict(model_zoo.load_url(model_urls['alexnet']))
         
     return model
@@ -212,8 +215,9 @@ class IMDBDataset(data.Dataset):
                                    (it can be a numpy array)
         """
         # TODO: Write the rest of this function
-
-        
+        path, target = self.imgs[index]
+        img = pil_loader(path)
+        target = np.array(target)
         
         
         if self.transform is not None:
