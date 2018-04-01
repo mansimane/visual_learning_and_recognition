@@ -3,7 +3,7 @@ import os
 import shutil
 import time
 import sys
-sys.path.insert(0,'/home/spurushw/reps/hw-wsddn-sol/faster_rcnn')
+sys.path.insert(0,'/home/ubuntu/code/visual_learning_and_recognition/hw2/code/faster_rcnn')
 import sklearn
 import sklearn.metrics
 
@@ -13,7 +13,7 @@ import torch.nn.parallel
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
-import torch.optim
+import torch.optim as optim
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.transforms as transforms
@@ -82,7 +82,8 @@ def main():
 
     # TODO:
     # define loss function (criterion) and optimizer
-
+    optimizer = optim.SGD(model.parameters(), lr = 0.01, momentum=0.9)
+    criterion = nn.MultiLabelSoftMarginLoss()
 
 
 
@@ -150,6 +151,7 @@ def main():
     for epoch in range(args.start_epoch, args.epochs):
         adjust_learning_rate(optimizer, epoch)
 
+        
         # train for one epoch
         train(train_loader, model, criterion, optimizer, epoch)
 
@@ -192,8 +194,11 @@ def train(train_loader, model, criterion, optimizer, epoch):
         # TODO: Get output from model
         # TODO: Perform any necessary functions on the output
         # TODO: Compute loss using ``criterion``
-        # compute output
-
+        
+            # compute output**
+        output = model(input_var)
+        print(output.size())
+        loss = criterion(output, target_var)
 
 
 
