@@ -197,10 +197,14 @@ def train(train_loader, model, criterion, optimizer, epoch):
         
             # compute output**
         output = model(input_var)
-        print(output.size())
-        loss = criterion(output, target_var)
-
-
+        
+        #print(output.size())
+        max_out = F.max_pool2d(output, kernel_size=output.size()[-1])
+        
+        imoutput = max_out.squeeze()
+        #imoutput = out.transpose(1,2)
+        
+        loss = criterion(imoutput, target_var)
 
         # measure metrics and record loss
         m1 = metric1(imoutput.data, target)
@@ -212,9 +216,9 @@ def train(train_loader, model, criterion, optimizer, epoch):
         # TODO: 
         # compute gradient and do SGD step
 
-
-
-
+        optimizer.zero_grad()   #zeros out all buffer for gradients from optimizer
+        loss.backward()
+        optimizer.step()
 
         # measure elapsed time
         batch_time.update(time.time() - end)

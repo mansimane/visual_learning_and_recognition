@@ -11,7 +11,7 @@ import os.path
 import numpy as np
 #from myutils import *
 import torchvision.models as models
-
+import cv2
 IMG_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm']
 
 
@@ -215,16 +215,20 @@ class IMDBDataset(data.Dataset):
                                    (it can be a numpy array)
         """
         # TODO: Write the rest of this function
-        path, target = self.imgs[index]
+        path, classes = self.imgs[index]
         img = pil_loader(path)
+        target = np.zeros((len(self.class_to_idx.keys())))
+        for cls in classes:
+            target[cls-1] = 1
         target = np.array(target)
-        
-        
         if self.transform is not None:
             img = self.transform(img)
         if self.target_transform is not None:
             target = self.target_transform(target)
-        return img, target
+        #print('img_shape', img.shape)
+        #print('targe_shape', len(target))
+        
+        return (img, target)
 
     def __len__(self):
         return len(self.imgs)
