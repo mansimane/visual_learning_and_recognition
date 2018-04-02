@@ -140,10 +140,8 @@ def main():
     # TODO: Create loggers for visdom and tboard
     # TODO: You can pass the logger objects to train(), make appropriate
     # modifications to train()
-
-
-
-
+    logger_t = Logger('./tboard', name='freeloc')
+    logger_v = Logger('./visdom', name='freeloc')
 
 
 
@@ -153,7 +151,7 @@ def main():
 
         
         # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch)
+        train(train_loader, model, criterion, optimizer, epoch, logger_t)
 
         # evaluate on validation set
         if epoch%args.eval_freq==0 or epoch==args.epochs-1:
@@ -172,7 +170,7 @@ def main():
 
 
 #TODO: You can add input arguments if you wish
-def train(train_loader, model, criterion, optimizer, epoch):
+def train(train_loader, model, criterion, optimizer, epoch, logger_t):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -206,6 +204,8 @@ def train(train_loader, model, criterion, optimizer, epoch):
         
         loss = criterion(imoutput, target_var)
 
+        # log the loss value
+        logger_t.scalar_summary(tag = 'loss', value= loss, step = )
         # measure metrics and record loss
         m1 = metric1(imoutput.data, target)
         m2 = metric2(imoutput.data, target)
@@ -260,7 +260,10 @@ def validate(val_loader, model, criterion):
         # TODO: Compute loss using ``criterion``
         # compute output
 
-
+        output = model(input_var)
+        max_out = F.max_pool2d(output, kernel_size=output.size()[-1])
+        imoutput = max_out.squeeze()
+        loss = criterion(imoutput, target_var)
 
 
         # measure metrics and record loss
