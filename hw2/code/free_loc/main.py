@@ -184,7 +184,8 @@ def train(train_loader, model, criterion, optimizer, epoch, logger_t):
     end = time.time()
     print(len(train_loader))
     # i goes from 0 to 5010/batchsize 
-    max_i = 5010/args.batch_size
+    max_i = 5010/args.batch_size  #5010 is lenght of data set
+    max_i_div = int(max_i/4)  #since we want to plot images for 4 batches
     for i, (input, target) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
@@ -239,13 +240,18 @@ def train(train_loader, model, criterion, optimizer, epoch, logger_t):
                    data_time=data_time, loss=losses, avg_m1=avg_m1,
                    avg_m2=avg_m2))
             # log the loss value
-            logger_t.scalar_summary(tag= 'loss', value= loss, step= i*epoch)
+            logger_t.scalar_summary(tag= 'loss', value= loss, step= (i+1)*epoch)
         #print(i)
         
         #TODO: Visualize things as mentioned in handout
         #TODO: Visualize at appropriate intervals
-        
+        if i % max_i_div == 0:
+            logger_t.image_summary(tag = 'train imgs batch:' + str(i), input, step=epoch)
+            logger_t.image_summary(tag = 'heat map batch:' + str(i), output, step=epoch)
 
+        
+        
+        
 def validate(val_loader, model, criterion):
     batch_time = AverageMeter()
     losses = AverageMeter()
