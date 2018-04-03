@@ -3,7 +3,8 @@ import os
 import shutil
 import time
 import sys
-sys.path.insert(0,'/home/ubuntu/code/visual_learning_and_recognition/hw2/code/faster_rcnn')
+sys.path.insert(0,'../faster_rcnn')
+sys.path.insert(0,'../')
 import sklearn
 import sklearn.metrics
 
@@ -22,7 +23,7 @@ import torchvision.models as models
 
 from datasets.factory import get_imdb
 from custom import *
-
+from logger import *
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
     and callable(models.__dict__[name]))
@@ -82,7 +83,7 @@ def main():
 
     # TODO:
     # define loss function (criterion) and optimizer
-    optimizer = optim.SGD(model.parameters(), lr = 0.01, momentum=0.9)
+    optimizer = optim.SGD(model.parameters(), lr = args.lr, momentum=0.9)
     criterion = nn.MultiLabelSoftMarginLoss()
 
 
@@ -181,6 +182,9 @@ def train(train_loader, model, criterion, optimizer, epoch, logger_t):
     model.train()
 
     end = time.time()
+    print(len(train_loader))
+    # i goes from 0 to 5010/batchsize 
+    max_i = 5010/args.batch_size
     for i, (input, target) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
@@ -203,9 +207,9 @@ def train(train_loader, model, criterion, optimizer, epoch, logger_t):
         #imoutput = out.transpose(1,2)
         
         loss = criterion(imoutput, target_var)
-
-        # log the loss value
-        logger_t.scalar_summary(tag = 'loss', value= loss, step = )
+        
+        
+        
         # measure metrics and record loss
         m1 = metric1(imoutput.data, target)
         m2 = metric2(imoutput.data, target)
@@ -234,7 +238,10 @@ def train(train_loader, model, criterion, optimizer, epoch, logger_t):
                    epoch, i, len(train_loader), batch_time=batch_time,
                    data_time=data_time, loss=losses, avg_m1=avg_m1,
                    avg_m2=avg_m2))
-
+            # log the loss value
+            logger_t.scalar_summary(tag= 'loss', value= loss, step= i*epoch)
+        #print(i)
+        
         #TODO: Visualize things as mentioned in handout
         #TODO: Visualize at appropriate intervals
         
@@ -288,8 +295,8 @@ def validate(val_loader, model, criterion):
 
         #TODO: Visualize things as mentioned in handout
         #TODO: Visualize at appropriate intervals
-
-
+        #
+        
 
 
 
