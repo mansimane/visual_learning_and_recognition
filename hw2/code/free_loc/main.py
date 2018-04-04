@@ -254,7 +254,7 @@ def train(train_loader, model, criterion, optimizer, epoch, logger_t, logger_v):
                 train_img = input[b_idx,:,:,:]
                 title = "_".join((str(epoch), str((i+1)*epoch), str(b_idx), img_name)) 
                 logger_v.image(
-                    train_img.transpose(2,0,1),
+                    train_img,
                     opts=dict(title=title)
                 )
                 h, w = input.size()[2], input.size()[3]
@@ -278,7 +278,7 @@ def train(train_loader, model, criterion, optimizer, epoch, logger_t, logger_v):
                         ### Tensorflow
                         logger_t.image_summary(tag =  'heat map batch:' + str(b_idx), images= np.array(m), step=epoch)
                         ### Visdom
-                        title = "_".join((str(epoch), str((i+1)*epoch), str(b_idx), 'heatmap', img_name, train_loader.idx_to_cls[j]))
+                        title = "_".join((str(epoch), str((i+1)*epoch), str(b_idx), 'heatmap', img_name, train_loader.dataset.idx_to_cls[j]))
                         logger_v.image(
                             clr.transpose((2,0,1)),
                             opts=dict(title=title)
@@ -379,12 +379,33 @@ def adjust_learning_rate(optimizer, epoch):
 
 def metric1(output, target):
     # TODO: Ignore for now - proceed till instructed
-    
-    return [0]
+    #size Nxk
+    target = np.array(target)
+    output = np.array(output)
+    all_ap = np.zeros((target.shape[1]))
+    for cls in range(output.shape[1]):
+        
+        gt = target[:][cls]
+        pred = output[:][cls]
+        pred -= 1e-5 * gt    # Subtract eps from score to make AP work for tied scores
+        all_ap[cls] = sklearn.metrics.average_precision_score(gt, pred, average=None)
+    return all_ap
 
-def metric2(output, target):
+def metric2(output, target,th = 0.2):
     # TODO: Ignore for now - proceed till instructed
-    return [0]
+    target = np.array(target)
+    target = target.astype('float')
+    output = np.array(output)
+    output = (output > th).astype('float')
+    all_ap = np.zeros((target.shape[1]))
+    for cls in range(output.shape[1]):
+        gt = target[:][cls]
+        pred = output[:][cls]
+        pred -= 1e-5 * gt    # Subtract eps from score to make AP work for tied scores
+        print(type(pred))
+        print(type(gt))
+        all_ap[cls] = sklearn.metrics.recall_score(gt, pred, average='micro')
+    return all_ap
 
 if __name__ == '__main__':
     main()
