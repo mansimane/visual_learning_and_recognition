@@ -200,6 +200,7 @@ class IMDBDataset(data.Dataset):
         self.imgs = imgs
         self.classes = classes
         self.class_to_idx = class_to_idx
+        self.idx_to_cls = {v : k for k, v in class_to_idx.iteritems()}
         self.transform = transform
         self.target_transform = target_transform
         self.loader = loader

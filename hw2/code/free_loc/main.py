@@ -5,8 +5,10 @@ import time
 import sys
 sys.path.insert(0,'../faster_rcnn')
 sys.path.insert(0,'../')
+
 import sklearn
 import sklearn.metrics
+import visdom
 
 import torch
 import torch.nn as nn
@@ -86,9 +88,7 @@ def main():
     optimizer = optim.SGD(model.parameters(), lr = args.lr, momentum=0.9)
     criterion = nn.MultiLabelSoftMarginLoss()
 
-
-
-
+    
     # optionally resume from a checkpoint
     if args.resume:
         if os.path.isfile(args.resume):
@@ -142,7 +142,8 @@ def main():
     # TODO: You can pass the logger objects to train(), make appropriate
     # modifications to train()
     logger_t = Logger('./tboard', name='freeloc')
-    logger_v = Logger('./visdom', name='freeloc')
+    logger_v = visdom.Visdom(server='http://localhost',port='8097')
+    #logger_v = Logger('./visdom', name='freeloc')
 
 
 
@@ -152,7 +153,7 @@ def main():
 
         
         # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch, logger_t)
+        train(train_loader, model, criterion, optimizer, epoch, logger_t, logger_v)
 
         # evaluate on validation set
         if epoch%args.eval_freq==0 or epoch==args.epochs-1:
@@ -171,7 +172,7 @@ def main():
 
 
 #TODO: You can add input arguments if you wish
-def train(train_loader, model, criterion, optimizer, epoch, logger_t):
+def train(train_loader, model, criterion, optimizer, epoch, logger_t, logger_v):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -186,6 +187,7 @@ def train(train_loader, model, criterion, optimizer, epoch, logger_t):
     # i goes from 0 to 5010/batchsize 
     max_i = 5010/args.batch_size  #5010 is lenght of data set
     max_i_div = int(max_i/4)  #since we want to plot images for 4 batches
+    
     for i, (input, target) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
@@ -208,8 +210,6 @@ def train(train_loader, model, criterion, optimizer, epoch, logger_t):
         #imoutput = out.transpose(1,2)
         
         loss = criterion(imoutput, target_var)
-        
-        
         
         # measure metrics and record loss
         m1 = metric1(imoutput.data, target)
@@ -246,10 +246,43 @@ def train(train_loader, model, criterion, optimizer, epoch, logger_t):
         #TODO: Visualize things as mentioned in handout
         #TODO: Visualize at appropriate intervals
         if i % max_i_div == 0:
-            logger_t.image_summary(tag = 'train imgs batch:' + str(i), input, step=epoch)
-            logger_t.image_summary(tag = 'heat map batch:' + str(i), output, step=epoch)
-
-        
+            for b_idx in range(target.size()[0]):
+                if b_idx > 4: 
+                    break
+                img_name = train_loader.dataset.imdb.image_path_at(b_idx+ i*args.batch_size)[-11:-1]
+                logger_t.image_summary(tag = 'imgs batch:' + str(b_idx), images =input[b_idx,:,:,:], step=epoch)
+                train_img = input[b_idx,:,:,:]
+                title = "_".join((str(epoch), str((i+1)*epoch), str(b_idx), img_name)) 
+                logger_v.image(
+                    train_img.transpose(2,0,1),
+                    opts=dict(title=title)
+                )
+                h, w = input.size()[2], input.size()[3]
+                cnt = sum(target[b_idx][:])
+                
+                #heatmap = torch.tensor(cnt,3,h,w)
+                #label_cnt = 0
+                #upsmapler = nn.Upsample(size = (h,w))
+                for j in range(target.size()[1]):
+                    if target[b_idx][j] == 1:
+                        #gray = upsmapler(output[i][j][:][:]) #Only 3D, 4D and 5D input Tensors 
+                        #supported, does not work
+                        a = np.array(output[b_idx][j][:][:].data)
+                        #print(a.shape)
+                        m = Image.fromarray(a*256).convert('RGB') 
+                        m = m.resize((h,w))
+                        
+                        clr = cv2.applyColorMap(np.array(m) ,cv2.COLORMAP_JET)
+                        #print(clr.shape)
+                        #heatmap[label_cnt][:][:][:] = clr
+                        ### Tensorflow
+                        logger_t.image_summary(tag =  'heat map batch:' + str(b_idx), images= np.array(m), step=epoch)
+                        ### Visdom
+                        title = "_".join((str(epoch), str((i+1)*epoch), str(b_idx), 'heatmap', img_name, train_loader.idx_to_cls[j]))
+                        logger_v.image(
+                            clr.transpose((2,0,1)),
+                            opts=dict(title=title)
+                        )
         
         
 def validate(val_loader, model, criterion):
@@ -346,6 +379,7 @@ def adjust_learning_rate(optimizer, epoch):
 
 def metric1(output, target):
     # TODO: Ignore for now - proceed till instructed
+    
     return [0]
 
 def metric2(output, target):
