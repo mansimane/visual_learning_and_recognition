@@ -71,6 +71,7 @@ def main():
     global args, best_prec1
     args = parser.parse_args()
     args.distributed = args.world_size > 1
+    numpy.random.seed(5)
 
     # create model
     print("=> creating model '{}'".format(args.arch))
@@ -251,11 +252,20 @@ def train(train_loader, model, criterion, optimizer, epoch, logger_t, logger_v):
                     break
                 img_name = train_loader.dataset.imdb.image_path_at(b_idx+ i*args.batch_size)[-11:-1]
                 logger_t.image_summary(tag = 'imgs batch:' + str(b_idx), images =input[b_idx,:,:,:], step=epoch)
-                train_img = input[b_idx,:,:,:]
+#                train_img = input[b_idx].cpu().numpy()*((np.array([[[0.229]], [[0.224]], [[0.225]]])+             np.array([[[0.485]], [[0.456]], [[0.406]]]))*255).astype(np.uint8)
+                #input_np = input[b_idx].cpu().numpy();
+                #train_img = (255 * (input_np - np.max(input_np))/np.ptp(input_np)).astype(np.uint8)
+                train_img = input[b_idx]
+                train_img = train_img.numpy()
+                train_img = train_img * np.array([0.229, 0.224, 0.225]).reshape((3,1,1))
+                train_img = train_img + np.array([0.485, 0.456, 0.406]).reshape((3,1,1))
+                train_img = (train_img * 256).astype(np.uint8)
+                
+                #print(train_img.size())
                 title = "_".join((str(epoch), str((i+1)*epoch), str(b_idx), img_name)) 
                 logger_v.image(
                     train_img,
-                    opts=dict(title=title)
+                    opts=dict(title=title),
                 )
                 h, w = input.size()[2], input.size()[3]
                 cnt = sum(target[b_idx][:])
@@ -391,20 +401,34 @@ def metric1(output, target):
         all_ap[cls] = sklearn.metrics.average_precision_score(gt, pred, average=None)
     return all_ap
 
-def metric2(output, target,th = 0.2):
+def metric2(output, target,th = 0.5):
     # TODO: Ignore for now - proceed till instructed
+    def false_neg(y_true, y_pred):
+              return np.sum((1. - y_pred) * y_true)
+    def true_pos(y_true, y_pred):
+              return np.sum(y_true * y_pred)
+    
     target = np.array(target)
     target = target.astype('float')
     output = np.array(output)
     output = (output > th).astype('float')
     all_ap = np.zeros((target.shape[1]))
+    micro = np.zeros((target.shape[1]))
+    macro = np.zeros((target.shape[1]))
+    weighted = np.zeros((target.shape[1]))
     for cls in range(output.shape[1]):
         gt = target[:][cls]
         pred = output[:][cls]
-        pred -= 1e-5 * gt    # Subtract eps from score to make AP work for tied scores
-        print(type(pred))
-        print(type(gt))
-        all_ap[cls] = sklearn.metrics.recall_score(gt, pred, average='micro')
+        tp = true_pos(gt,pred)
+        #fn = false_neg(gt,pred)
+        #all_ap[cls] = tp/(tp+fn)
+        #micro[cls] = sklearn.metrics.recall_score(gt, pred, average='micro')
+        all_ap[cls] = sklearn.metrics.recall_score(gt, pred, average='macro')
+        #weighted[cls] = sklearn.metrics.recall_score(gt, pred, average='weighted')
+ 
+    #     print('micro', np.mean(micro))
+    #     print('macro', np.mean(macro))
+    #     print('weighted', np.mean(weighted))
     return all_ap
 
 if __name__ == '__main__':
