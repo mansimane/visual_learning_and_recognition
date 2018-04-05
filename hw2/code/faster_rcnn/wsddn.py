@@ -13,7 +13,7 @@ from fast_rcnn.bbox_transform import bbox_transform_inv, clip_boxes
 import network
 from network import Conv2d, FC
 from roi_pooling.modules.roi_pool import RoIPool
-from vgg16 import VGG16
+#from vgg16 import VGG16
 
 def nms_detections(pred_boxes, scores, nms_thresh, inds=None):
     dets = np.hstack((pred_boxes,
@@ -96,18 +96,20 @@ class WSDDN(nn.Module):
         # Checkout faster_rcnn.py for inspiration
         features = self.features(im_data)
         from IPython.core.debugger import Tracer; Tracer()() 
+        rois = network.np_to_variable(rois, is_cuda=True)
         roi_features1 =  self.roi_pool.forward(features,rois)  # should be a 4D tensor for single image or after flattening
-        print(roi_features1.size())
+        print(roi_features1.size()) #(2997L, 256L, 6L, 6L)
+        roi_features1 = roi_features1.view(-1, 9216)#2997 x 9216
         roi_features2 =  self.classifier(roi_features1)
         
         print(roi_features2.size())
-        cls_score = self.score_cls(roi_features2) # 
+        cls_score = self.score_cls(roi_features2) #  2997x20
         det_score = self.score_det(roi_features2) #RxC or CxR?
         
-        cls_score =  F.softmax(cls_score)
+        cls_score =  F.softmax(cls_score,dim=1)
         
-        det_score = torch.traspose(det_score)
-        det_score = F.softmax(det_score)
+ #       det_score = torch.traspose(det_score,dim=0)
+        det_score = F.softmax(det_score,dim=0)
         det_score = torch.traspose(det_score)
         
         cls_prob = torch.mul(det_score,cls_score)

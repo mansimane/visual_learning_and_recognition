@@ -117,7 +117,8 @@ for step in range(start_step, end_step+1):
 
     # get one batch
     blobs = data_layer.forward()
-    im_data = blobs['data']
+    from IPython.core.debugger import Tracer; Tracer()() #labels may be none
+    im_data = blobs['data']#1xhxwx3
     rois = blobs['rois']
     im_info = blobs['im_info']
     gt_vec = blobs['labels']
