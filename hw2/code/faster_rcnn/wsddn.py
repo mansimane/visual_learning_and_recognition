@@ -58,7 +58,7 @@ class WSDDN(nn.Module):
             nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
           )
         
-        self.roi_pool = RoIPool()
+        self.roi_pool = RoIPool(6, 6, 1.0/16)
         
         self.classifier = nn.Sequential(
             nn.Linear(in_features=9216, out_features=4096),
@@ -96,11 +96,22 @@ class WSDDN(nn.Module):
         # Checkout faster_rcnn.py for inspiration
         features = self.features(im_data)
         from IPython.core.debugger import Tracer; Tracer()() 
-
-
-
-
-
+        roi_features1 =  self.roi_pool.forward(features,rois)  # should be a 4D tensor for single image or after flattening
+        print(roi_features1.size())
+        roi_features2 =  self.classifier(roi_features1)
+        
+        print(roi_features2.size())
+        cls_score = self.score_cls(roi_features2) # 
+        det_score = self.score_det(roi_features2) #RxC or CxR?
+        
+        cls_score =  F.softmax(cls_score)
+        
+        det_score = torch.traspose(det_score)
+        det_score = F.softmax(det_score)
+        det_score = torch.traspose(det_score)
+        
+        cls_prob = torch.mul(det_score,cls_score)
+        
         if self.training:
             label_vec = network.np_to_variable(gt_vec, is_cuda=True)
             label_vec = label_vec.view(self.n_classes,-1)
@@ -118,7 +129,7 @@ class WSDDN(nn.Module):
         #TODO: Compute the appropriate loss using the cls_prob that is the
         #output of forward()
         #Checkout forward() to see how it is called
-
+        #sum over regions and compute loss wrt to label_vec
 
 
 
