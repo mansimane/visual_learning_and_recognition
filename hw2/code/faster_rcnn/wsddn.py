@@ -75,11 +75,7 @@ class WSDDN(nn.Module):
         self.score_det = nn.Sequential(
             nn.Linear(in_features=4096, out_features=20),
           )
-        
-        
-        
-        
-        
+                
         # loss
         self.cross_entropy = None
 
@@ -98,8 +94,8 @@ class WSDDN(nn.Module):
         #TODO: Use im_data and rois as input
         # compute cls_prob which are N_roi X 20 scores
         # Checkout faster_rcnn.py for inspiration
-
-
+        features = self.features(im_data)
+        from IPython.core.debugger import Tracer; Tracer()() 
 
 
 
