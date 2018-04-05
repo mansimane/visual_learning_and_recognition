@@ -56,7 +56,7 @@ def get_weak_minibatch(roidb, num_classes):
                            num_classes)
         #TODO: same as get_minibatch, but we only use the image-level labels
         #So blobs['labels'] should contain a 1x20 binary vector for each image 
-
+    from IPython.core.debugger import Tracer; Tracer()() 
         
     blobs['rois'] = rois_blob
     blobs['labels'] = labels_blob

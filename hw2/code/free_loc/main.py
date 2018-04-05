@@ -26,6 +26,8 @@ import torchvision.models as models
 from datasets.factory import get_imdb
 from custom import *
 from logger import *
+
+import numpy as np
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
     and callable(models.__dict__[name]))
@@ -71,7 +73,7 @@ def main():
     global args, best_prec1
     args = parser.parse_args()
     args.distributed = args.world_size > 1
-    numpy.random.seed(5)
+    np.random.seed(5)
 
     # create model
     print("=> creating model '{}'".format(args.arch))
@@ -390,7 +392,7 @@ def adjust_learning_rate(optimizer, epoch):
 def metric1(output, target):
     # TODO: Ignore for now - proceed till instructed
     #size Nxk
-    target = np.array(target)
+    target = np.array(torch.nn.Sigmoid(target))
     output = np.array(output)
     all_ap = np.zeros((target.shape[1]))
     for cls in range(output.shape[1]):
@@ -408,7 +410,7 @@ def metric2(output, target,th = 0.5):
     def true_pos(y_true, y_pred):
               return np.sum(y_true * y_pred)
     
-    target = np.array(target)
+    target = np.array(torch.nn.Sigmoid(target))
     target = target.astype('float')
     output = np.array(output)
     output = (output > th).astype('float')

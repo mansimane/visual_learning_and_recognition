@@ -147,6 +147,10 @@ def localizer_alexnet(pretrained=False, **kwargs):
     if pretrained:
         model_temp = models.alexnet(pretrained=True)
         model.features = nn.Sequential(*list(model_temp.features.children())[:-1])
+        for f in model.classifier:
+            if isinstance(f, nn.Conv2D):
+                sum_io = f.weight.size[0] + f.weight.size[1]
+                f.weight.data.normal_(0, math.sqrt(2.0 / sum_io))
         
         #way to verify if pretrained model loaded or not
 #         for k, v in model.state_dict().iteritems():
