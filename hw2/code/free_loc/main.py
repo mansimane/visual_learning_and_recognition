@@ -173,6 +173,7 @@ def main():
                 'optimizer' : optimizer.state_dict(),
             }, is_best)
 
+    torch.save(model, 'free_loc_model.pt')
 
 #TODO: You can add input arguments if you wish
 def train(train_loader, model, criterion, optimizer, epoch, logger_t, logger_v):
