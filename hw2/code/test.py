@@ -69,6 +69,7 @@ def im_detect(net, image, rois):
         [[im_data.shape[1], im_data.shape[2], im_scales[0]]],
         dtype=np.float32)
 
+    from IPython.core.debugger import Tracer; Tracer()() 
     cls_prob = net(im_data, rois, im_info)
     scores = cls_prob.data.cpu().numpy()
     boxes = rois[:, 1:5] / im_info[0][2]
@@ -107,6 +108,7 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.05, visualize=False,
         im = cv2.imread(imdb.image_path_at(i))
         rois = imdb.roidb[i]['boxes']
         _t['im_detect'].tic()
+        
         scores, boxes = im_detect(net, im, rois)
         detect_time = _t['im_detect'].toc(average=False)
 
