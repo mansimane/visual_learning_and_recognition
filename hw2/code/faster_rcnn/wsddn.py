@@ -95,7 +95,7 @@ class WSDDN(nn.Module):
         # compute cls_prob which are N_roi X 20 scores
         # Checkout faster_rcnn.py for inspiration
         features = self.features(im_data)
-        from IPython.core.debugger import Tracer; Tracer()() 
+        #from IPython.core.debugger import Tracer; Tracer()() 
         rois = network.np_to_variable(rois, is_cuda=True)
         roi_features1 =  self.roi_pool.forward(features,rois)  # should be a 4D tensor for single image or after flattening
         print(roi_features1.size()) #(2997L, 256L, 6L, 6L)
@@ -110,7 +110,7 @@ class WSDDN(nn.Module):
         
  #       det_score = torch.traspose(det_score,dim=0)
         det_score = F.softmax(det_score,dim=0)
-        det_score = torch.traspose(det_score)
+#        det_score = torch.traspose(det_score)
         
         cls_prob = torch.mul(det_score,cls_score)
         
@@ -132,10 +132,9 @@ class WSDDN(nn.Module):
         #output of forward()
         #Checkout forward() to see how it is called
         #sum over regions and compute loss wrt to label_vec
-
-
-
-
+        cls_prob = torch.sum(cls_prob, dim=0)
+        loss_cls = torch.nn.BCELoss(size_average=False)
+        loss = loss_cls(cls_prob, label_vec)
 
 	return loss
 

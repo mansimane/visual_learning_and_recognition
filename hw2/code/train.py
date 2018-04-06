@@ -19,10 +19,30 @@ from roi_data_layer.layer import RoIDataLayer
 from datasets.factory import get_imdb
 from fast_rcnn.config import cfg, cfg_from_file
 
+import visdom
+from logger import *
+from test import test_net
 try:
     from termcolor import cprint
 except ImportError:
     cprint = None
+
+class VisdomLinePlotter(object):
+    """Plots to Visdom"""
+    def __init__(self, env_name='main'):
+        self.viz = logger_v
+        self.env = env_name
+        self.plots = {}
+    def plot(self, var_name, split_name, x, y):
+        if var_name not in self.plots:
+            self.plots[var_name] = self.viz.line(X=np.array([x,x]), Y=np.array([y,y]), env=self.env, opts=dict(
+                legend=[split_name],
+                title=var_name,
+                xlabel='Epochs',
+                ylabel=var_name
+            ))
+        else:
+            self.viz.updateTrace(X=np.array([x]), Y=np.array([y]), env=self.env, win=self.plots[var_name], name=split_name)
 
 def log_print(text, color=None, on_color=None, attrs=None):
     if cprint is not None:
@@ -33,6 +53,8 @@ def log_print(text, color=None, on_color=None, attrs=None):
 # hyper-parameters
 # ------------
 imdb_name = 'voc_2007_trainval'
+test_imdb_name = 'voc_2007_test'
+
 cfg_file = 'experiments/cfgs/wsddn.yml'
 pretrained_model = 'data/pretrained_model/alexnet_imagenet.npy'
 output_dir = 'models/saved_model'
@@ -72,6 +94,7 @@ rdl_roidb.prepare_roidb(imdb)
 roidb = imdb.roidb
 data_layer = RoIDataLayer(roidb, imdb.num_classes)
 
+test_imdb = get_imdb(test_imdb_name)
 # Create network and initialize
 net = WSDDN(classes=imdb.classes, debug=_DEBUG)
 network.weights_normal_init(net, dev=0.001)
@@ -113,11 +136,15 @@ step_cnt = 0
 re_cnt = False
 t = Timer()
 t.tic()
+
+logger_v = visdom.Visdom(server='http://localhost' ,port='8097')
+logger_t = Logger('./tboard', name='wsddn')
+plotter = VisdomLinePlotter(env_name='main_wsddn_train')
 for step in range(start_step, end_step+1):
 
     # get one batch
     blobs = data_layer.forward()
-    from IPython.core.debugger import Tracer; Tracer()() #labels may be none
+    #from IPython.core.debugger import Tracer; Tracer()() #labels may be none
     im_data = blobs['data']#1xhxwx3
     rois = blobs['rois']
     im_info = blobs['im_info']
@@ -145,10 +172,24 @@ for step in range(start_step, end_step+1):
         re_cnt = True
 
     #TODO: evaluate the model every N iterations (N defined in handout)
+    if step%500 ==0:   #Plot loss
+        logger_t.scalar_summary(tag= 'loss', value= loss.data[0], step= step)
+        #logger_v.scalar_summary(tag= 'loss', value= loss.data[0], step= step)
+        plotter.plot('loss', 'train', step, loss.data[0])
 
+    if step%2000 ==0:   #Plot mAP on histograms of weights and gradients
+        pass
+        #logger_t.histo_summary(tag= , values= , step=step, bins=1000)
 
-
-
+    if step%5000 ==0:   #Plot mAP on test/ and classwise APs
+        aps = test_net(name='wsddn_test', net=net, imdb =test_imdb, max_per_image=300, thresh=0.05, visualize=True, logger=logger_t, step=step)
+        mean_ap = np.mean(aps)
+        plotter.plot('mAP', 'test', step, mean_ap)
+        for idx in range(len(aps)):
+            tag = 'cls_' + str(idx) + '_ap'
+            logger_t.scalar_summary(tag= 'tag', value= aps[idx], step= step)
+            
+        
     #TODO: Perform all visualizations here
     #You can define other interval variable if you want (this is just an
     #example)

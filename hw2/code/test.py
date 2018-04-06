@@ -146,6 +146,8 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.05, visualize=False,
             # TODO: Visualize here using tensorboard
             # TODO: use the logger that is an argument to this function
             print('Visualizing')
+            #logger_t.scalar_summary(tag= 'test_image', value= loss.data[0], step= step)
+            logger_t.image_summary(tag = 'test_image_' + str(i), images =im2show, step=step)
             #cv2.imshow('test', im2show)
             #cv2.waitKey(1)
 
