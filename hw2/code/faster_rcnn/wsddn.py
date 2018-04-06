@@ -45,26 +45,26 @@ class WSDDN(nn.Module):
         
         #TODO: Define the WSDDN model
         self.features = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=(11, 11), stride=(4, 4), padding=(2, 2)),
+            nn.Conv2d(3, 64, kernel_size=(11, 11), stride=(4, 4), padding=(2, 2)), #0
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=(3, 3), stride=(2, 2), dilation=(1, 1), ceil_mode=False),
-            nn.Conv2d(64, 192, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2)),
+            nn.Conv2d(64, 192, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2)),#3
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=(3, 3), stride=(2, 2), dilation=(1, 1), ceil_mode=False),
-            nn.Conv2d(192, 384, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.Conv2d(192, 384, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),#6
             nn.ReLU(inplace=True),
-            nn.Conv2d(384, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.Conv2d(384, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),#8
             nn.ReLU(inplace=True),
-            nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),#10
           )
         
         self.roi_pool = RoIPool(6, 6, 1.0/16)
         
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=9216, out_features=4096),
+            nn.Linear(in_features=9216, out_features=4096),#11-1
             nn.ReLU(inplace=True),
             nn.Dropout(p=0.5),
-            nn.Linear(in_features=4096, out_features=4096),
+            nn.Linear(in_features=4096, out_features=4096),#12-4
             nn.ReLU(inplace=True)
           )
         
@@ -98,11 +98,11 @@ class WSDDN(nn.Module):
         #from IPython.core.debugger import Tracer; Tracer()() 
         rois = network.np_to_variable(rois, is_cuda=True)
         roi_features1 =  self.roi_pool.forward(features,rois)  # should be a 4D tensor for single image or after flattening
-        print(roi_features1.size()) #(2997L, 256L, 6L, 6L)
+        #print(roi_features1.size()) #(2997L, 256L, 6L, 6L)
         roi_features1 = roi_features1.view(-1, 9216)#2997 x 9216
         roi_features2 =  self.classifier(roi_features1)
         
-        print(roi_features2.size())
+        #print(roi_features2.size())
         cls_score = self.score_cls(roi_features2) #  2997x20
         det_score = self.score_det(roi_features2) #RxC or CxR?
         
@@ -110,7 +110,7 @@ class WSDDN(nn.Module):
         
  #       det_score = torch.traspose(det_score,dim=0)
         det_score = F.softmax(det_score,dim=0)
-        det_score = torch.traspose(det_score)
+        #det_score = torch.traspose(det_score)
         
         cls_prob = torch.mul(det_score,cls_score)
         

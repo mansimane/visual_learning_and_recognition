@@ -103,8 +103,11 @@ if os.path.exists('pretrained_alexnet.pkl'):
 else:
     pret_net = model_zoo.load_url('https://download.pytorch.org/models/alexnet-owt-4df8aa71.pth')
     pkl.dump(pret_net, open('pretrained_alexnet.pkl','wb'), pkl.HIGHEST_PROTOCOL)
+
 own_state = net.state_dict()
+#print(own_state)
 for name, param in pret_net.items():
+    #print(name)
     if name not in own_state:
         continue
     if isinstance(param, Parameter):
@@ -115,6 +118,40 @@ for name, param in pret_net.items():
     except:
         print('Did not find {}'.format(name))
         continue
+    if name == 'classifier.1.weight':
+        param = param.data
+        own_state['classifier.0.weight'].copy_(param)
+        print('Copied {}'.format(name))
+    if name == 'classifier.1.bias':
+        param = param.data
+        own_state['classifier.0.bias'].copy_(param)
+        print('Copied {}'.format(name))
+    
+    if name == 'classifier.4.weight':
+        param = param.data
+        own_state['classifier.3.weight'].copy_(param)
+        print('Copied {}'.format(name))
+    
+    if name == 'classifier.4.bias':
+        param = param.data
+        own_state['classifier.3.bias'].copy_(param)
+        print('Copied {}'.format(name))
+    
+    if name == 'classifier.6.weight':#*** necessary?
+        param = param.data
+        own_state['score_cls.0.weight'].copy_(param)
+        own_state['score_det.0.weight'].copy_(param)
+        print('Copied {}'.format(name))
+       
+         
+    if name == 'classifier.6.bias':
+        param = param.data
+        own_state['score_cls.0.bias'].copy_(param)
+        own_state['score_det.0.bias'].copy_(param)
+        print('Copied {}'.format(name))
+        
+                
+#from IPython.core.debugger import Tracer; Tracer()()
 
 # Move model to GPU and set train mode
 net.cuda()
@@ -178,18 +215,17 @@ for step in range(start_step, end_step+1):
         plotter.plot('loss', 'train', step, loss.data[0])
 
     if step%2000 ==0:   #Plot mAP on histograms of weights and gradients
-        pass
-        #logger_t.histo_summary(tag= , values= , step=step, bins=1000)
-
+        logger_t.model_param_histo_summary(net, step=step)
     if step%5000 ==0:   #Plot mAP on test/ and classwise APs
+        net.eval()
         aps = test_net(name='wsddn_test', net=net, imdb =test_imdb, max_per_image=300, thresh=0.05, visualize=True, logger=logger_t, step=step)
         mean_ap = np.mean(aps)
         plotter.plot('mAP', 'test', step, mean_ap)
         for idx in range(len(aps)):
-            tag = 'cls_' + str(idx) + '_ap'
-            logger_t.scalar_summary(tag= 'tag', value= aps[idx], step= step)
+            tag = 'ap_' + imdb.classes[idx] + '_ap'
+            logger_t.scalar_summary(tag= tag, value= aps[idx], step= step)
             
-        
+        net.train()
     #TODO: Perform all visualizations here
     #You can define other interval variable if you want (this is just an
     #example)
@@ -217,4 +253,4 @@ for step in range(start_step, end_step+1):
         step_cnt = 0
         t.tic()
         re_cnt = False
-
+torch.save(net, 'wsddn_model.pt')

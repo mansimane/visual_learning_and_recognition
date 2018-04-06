@@ -25,6 +25,8 @@ from utils.blob import prep_im_for_blob, im_list_to_blob
 def get_weak_minibatch(roidb, num_classes):
     """Given a roidb, construct a minibatch sampled from it."""
     num_images = len(roidb)
+    print('num_images',num_images)
+    print('roidb[0].keys()',roidb[0].keys())
     # Sample random scales to use for each image in this batch
     random_scale_inds = npr.randint(0, high=len(cfg.TRAIN.SCALES),
                                     size=num_images)
@@ -184,6 +186,8 @@ def _get_image_blob(roidb, scale_inds):
     mean=np.array([[[0.485, 0.456, 0.406]]])
     std=np.array([[[0.229, 0.224, 0.225]]])
     for i in xrange(num_images):
+        #from IPython.core.debugger import Tracer; Tracer()()
+
         im = cv2.imread(roidb[i]['image'])/255.0
         if roidb[i]['flipped']:
             im = im[:, ::-1, :]

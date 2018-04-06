@@ -110,4 +110,3 @@ class Logger(object):
             tag = self.name+'/'+tag
             self.histo_summary(tag, self.to_np(value), step)
             self.histo_summary(tag+'/grad', self.to_np(value.grad), step)  
-
