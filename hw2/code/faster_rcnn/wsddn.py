@@ -110,7 +110,7 @@ class WSDDN(nn.Module):
         
  #       det_score = torch.traspose(det_score,dim=0)
         det_score = F.softmax(det_score,dim=0)
-#        det_score = torch.traspose(det_score)
+        det_score = torch.traspose(det_score)
         
         cls_prob = torch.mul(det_score,cls_score)
         
