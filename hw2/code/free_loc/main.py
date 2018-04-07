@@ -251,62 +251,68 @@ def train(train_loader, model, criterion, optimizer, epoch, logger_t, logger_v):
         
         #TODO: Visualize things as mentioned in handout
         #TODO: Visualize at appropriate intervals
-        if i % max_i_div == 0:
+        if (i % max_i_div == 0) and (epoch < 3 or epoch > 28):
             for b_idx in range(target.size()[0]):
                 if b_idx > 4: 
                     break
                 img_name = train_loader.dataset.imdb.image_path_at(b_idx+ i*args.batch_size)[-11:-1]
+                #log train image to VISdom and tensorboard
                 train_img_t = input[b_idx].cpu().numpy()
-                train_img_t4 = np.uint8(np.transpose(train_img_t,(1,2,0)) * 255)
-                train_img_t4 = train_img_t4[np.newaxis, :,:,:]
-                logger_t.image_summary(tag = 'imgs batch:' + str(b_idx), images =train_img_t4, step=epoch)
-
-                train_img = input[b_idx]
-                train_img = train_img.numpy()
-                train_img = train_img * np.array([0.229, 0.224, 0.225]).reshape((3,1,1))
-                train_img = train_img + np.array([0.485, 0.456, 0.406]).reshape((3,1,1))
-                train_img = (train_img * 256).astype(np.uint8)
-                
-                #print(train_img.size())
+                train_img_t = (train_img_t - train_img_t.min())/(train_img_t.max() - train_img_t.min())
                 title = "_".join((str(epoch), str((i+1)*epoch), str(b_idx), img_name)) 
                 logger_v.image(
-                    train_img,
+                    train_img_t,
                     opts=dict(title=title),
                 )
-                h, w = input.size()[2], input.size()[3]
-                cnt = sum(target[b_idx][:])
                 
-                #heatmap = torch.tensor(cnt,3,h,w)
-                #label_cnt = 0
-                #upsmapler = nn.Upsample(size = (h,w))
-                for j in range(target.size()[1]):
-                    if target[b_idx][j] == 1:
-                        #gray = upsmapler(output[i][j][:][:]) #Only 3D, 4D and 5D input Tensors 
-                        #supported, does not work
-#                         a = np.array(output[b_idx][j][:][:].data)
-#                         #print(a.shape)
-#                         m = Image.fromarray(a*256).convert('RGB') 
-#                         m = m.resize((h,w))
-                        
-#                         clr = cv2.applyColorMap(np.array(m) ,cv2.COLORMAP_JET)
+                train_img_t4 = np.uint8(np.transpose(train_img_t,(1,2,0)) * 255)
+                train_img_t4 = train_img_t4[np.newaxis, :,:,:]
+                logger_t.image_summary(tag = 'train/epoch'+ str(epoch) + '_batch'+ str(i) + '_bidx' + str(b_idx)+'image', images =train_img_t4, step=epoch)
 
-                        a = np.array(output[b_idx][j][:][:].data)
-                        #print(a.shape)
-                        m = Image.fromarray(a*256).convert('RGB') 
-                        m = m.resize((h,w))
-                        
-                        clr = cv2.applyColorMap(np.array(m) ,cv2.COLORMAP_JET)
-                        clr_t = clr[np.newaxis, :,:,:]
-                        #print(clr.shape)
-                        #heatmap[label_cnt][:][:][:] = clr
+#                 #log train image to Visdom
+#                 train_img = input[b_idx]
+#                 train_img = train_img.numpy()
+#                 train_img = train_img * np.array([0.229, 0.224, 0.225]).reshape((3,1,1))
+#                 train_img = train_img + np.array([0.485, 0.456, 0.406]).reshape((3,1,1))
+#                 train_img = (train_img * 256).astype(np.uint8)
+                
+                #
+                
+                h, w = input.size()[2], input.size()[3]
+                
+                gt_ind = [x for x in range(target.size()[1]) if target[b_idx,x] == 1]
+                heatmap = np.zeros((len(gt_ind),512,512))
+                output_np = output.data.cpu().numpy()
+                #from IPython.core.debugger import Tracer; Tracer()()
+
+                output_np.resize((output_np.shape[0],output_np.shape[1], 1, output_np.shape[2], output_np.shape[3]))
+                for j in range(len(gt_ind)):
+                    cls_idx = gt_ind[j]
+                    h_norm = (output_np[b_idx,cls_idx] + output_np[b_idx,cls_idx].min())/(output_np[b_idx,cls_idx].max() - output_np[b_idx,cls_idx].min())
+                    '''
+                    hr_cv = cv2.resize(h_norm[0], (512,512))
+                    hr_cv2 = hr_cv[np.newaxis, :,:]
+                    logger_t.image_summary(tag = 'mansi:' + str(b_idx), images =hr_cv2, step=epoch)
+
+                    
+                    '''
+                    b = cv2.resize(h_norm[0]*256, (512,512))
+                    
+                    
+                    #b = np.uint8(class_jet(np.array(b)) * 255)
+                    heatmap[j] = b
+                    #logging heatmap to visdom
+                    title = "_".join((str(epoch), str((i+1)*epoch), str(b_idx), 'heatmap_', img_name, train_loader.dataset.idx_to_cls[j]))
+                    logger_v.image(
+                        b,
+                        opts=dict(title=title)
+                     )
                         ### Tensorflow
-                        logger_t.image_summary(tag =  'heat map batch:' + str(b_idx), images= np.array(clr_t), step=epoch)
+                #logging heatmap image to tensorboard
+                tag = 'train/epoch'+ str(epoch) + '_batch'+ str(i) + '_bidx' + str(b_idx)+'heatmap'
+                logger_t.image_summary(tag = tag, images= heatmap, step=epoch)
                         ### Visdom
-                        title = "_".join((str(epoch), str((i+1)*epoch), str(b_idx), 'heatmap', img_name, train_loader.dataset.idx_to_cls[j]))
-                        logger_v.image(
-                            clr.transpose((2,0,1)),
-                            opts=dict(title=title)
-                        )
+                
         
         
 def validate(val_loader, model, criterion):
