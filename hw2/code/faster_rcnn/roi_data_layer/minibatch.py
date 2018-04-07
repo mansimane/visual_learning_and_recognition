@@ -25,8 +25,8 @@ from utils.blob import prep_im_for_blob, im_list_to_blob
 def get_weak_minibatch(roidb, num_classes):
     """Given a roidb, construct a minibatch sampled from it."""
     num_images = len(roidb)
-    print('num_images',num_images)
-    print('roidb[0].keys()',roidb[0].keys())
+    #print('num_images',num_images)
+    #print('roidb[0].keys()',roidb[0].keys())
     # Sample random scales to use for each image in this batch
     random_scale_inds = npr.randint(0, high=len(cfg.TRAIN.SCALES),
                                     size=num_images)
@@ -62,7 +62,7 @@ def get_weak_minibatch(roidb, num_classes):
         gt_classes = roidb[im_i]['gt_classes']
         for cls_idx in xrange(len(gt_classes)):
             if gt_classes[cls_idx] > 0:
-                labels_blob[im_i][cls_idx-1] = 1
+                labels_blob[im_i][gt_classes[cls_idx]-1] = 1
         # Add to RoIs blob
         rois = _project_im_rois(im_rois, im_scales[im_i])
         batch_ind = im_i * np.ones((rois.shape[0], 1))

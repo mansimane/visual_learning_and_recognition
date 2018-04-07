@@ -214,7 +214,9 @@ def train(train_loader, model, criterion, optimizer, epoch, logger_t, logger_v):
         #imoutput = out.transpose(1,2)
         
         loss = criterion(imoutput, target_var)
-        
+        m = torch.nn.Sigmoid()
+        sig_imoutput = m(imoutput.data)
+
         # measure metrics and record loss
         m1 = metric1(imoutput.data, target)
         m2 = metric2(imoutput.data, target)
@@ -244,7 +246,7 @@ def train(train_loader, model, criterion, optimizer, epoch, logger_t, logger_v):
                    data_time=data_time, loss=losses, avg_m1=avg_m1,
                    avg_m2=avg_m2))
             # log the loss value
-            logger_t.scalar_summary(tag= 'loss', value= loss, step= (i+1)*epoch)
+            logger_t.scalar_summary(tag= 'loss', value= loss, step= i+(epoch*max_i))
         #print(i)
         
         #TODO: Visualize things as mentioned in handout
@@ -254,10 +256,11 @@ def train(train_loader, model, criterion, optimizer, epoch, logger_t, logger_v):
                 if b_idx > 4: 
                     break
                 img_name = train_loader.dataset.imdb.image_path_at(b_idx+ i*args.batch_size)[-11:-1]
-                logger_t.image_summary(tag = 'imgs batch:' + str(b_idx), images =input[b_idx,:,:,:], step=epoch)
-#                train_img = input[b_idx].cpu().numpy()*((np.array([[[0.229]], [[0.224]], [[0.225]]])+             np.array([[[0.485]], [[0.456]], [[0.406]]]))*255).astype(np.uint8)
-                #input_np = input[b_idx].cpu().numpy();
-                #train_img = (255 * (input_np - np.max(input_np))/np.ptp(input_np)).astype(np.uint8)
+                train_img_t = input[b_idx].cpu().numpy()
+                train_img_t4 = np.uint8(np.transpose(train_img_t,(1,2,0)) * 255)
+                train_img_t4 = train_img_t4[np.newaxis, :,:,:]
+                logger_t.image_summary(tag = 'imgs batch:' + str(b_idx), images =train_img_t4, step=epoch)
+
                 train_img = input[b_idx]
                 train_img = train_img.numpy()
                 train_img = train_img * np.array([0.229, 0.224, 0.225]).reshape((3,1,1))
@@ -280,16 +283,24 @@ def train(train_loader, model, criterion, optimizer, epoch, logger_t, logger_v):
                     if target[b_idx][j] == 1:
                         #gray = upsmapler(output[i][j][:][:]) #Only 3D, 4D and 5D input Tensors 
                         #supported, does not work
+#                         a = np.array(output[b_idx][j][:][:].data)
+#                         #print(a.shape)
+#                         m = Image.fromarray(a*256).convert('RGB') 
+#                         m = m.resize((h,w))
+                        
+#                         clr = cv2.applyColorMap(np.array(m) ,cv2.COLORMAP_JET)
+
                         a = np.array(output[b_idx][j][:][:].data)
                         #print(a.shape)
                         m = Image.fromarray(a*256).convert('RGB') 
                         m = m.resize((h,w))
                         
                         clr = cv2.applyColorMap(np.array(m) ,cv2.COLORMAP_JET)
+                        clr_t = clr[np.newaxis, :,:,:]
                         #print(clr.shape)
                         #heatmap[label_cnt][:][:][:] = clr
                         ### Tensorflow
-                        logger_t.image_summary(tag =  'heat map batch:' + str(b_idx), images= np.array(m), step=epoch)
+                        logger_t.image_summary(tag =  'heat map batch:' + str(b_idx), images= np.array(clr_t), step=epoch)
                         ### Visdom
                         title = "_".join((str(epoch), str((i+1)*epoch), str(b_idx), 'heatmap', img_name, train_loader.dataset.idx_to_cls[j]))
                         logger_v.image(
@@ -323,11 +334,12 @@ def validate(val_loader, model, criterion):
         max_out = F.max_pool2d(output, kernel_size=output.size()[-1])
         imoutput = max_out.squeeze()
         loss = criterion(imoutput, target_var)
-
+        m = torch.nn.Sigmoid()
+        sig_imoutput = m(imoutput.data)
 
         # measure metrics and record loss
-        m1 = metric1(imoutput.data, target)
-        m2 = metric2(imoutput.data, target)
+        m1 = metric1(sig_imoutput, target)
+        m2 = metric2(sig_imoutput, target)
         losses.update(loss.data[0], input.size(0))
         avg_m1.update(m1[0], input.size(0))
         avg_m2.update(m2[0], input.size(0))
@@ -393,7 +405,8 @@ def adjust_learning_rate(optimizer, epoch):
 def metric1(output, target):
     # TODO: Ignore for now - proceed till instructed
     #size Nxk
-    target = np.array(torch.nn.Sigmoid(target))
+    #from IPython.core.debugger import Tracer; Tracer()()
+    target = np.array(target)
     output = np.array(output)
     all_ap = np.zeros((target.shape[1]))
     for cls in range(output.shape[1]):
@@ -411,7 +424,7 @@ def metric2(output, target,th = 0.5):
     def true_pos(y_true, y_pred):
               return np.sum(y_true * y_pred)
     
-    target = np.array(torch.nn.Sigmoid(target))
+    target = np.array(target)
     target = target.astype('float')
     output = np.array(output)
     output = (output > th).astype('float')
@@ -426,7 +439,7 @@ def metric2(output, target,th = 0.5):
         #fn = false_neg(gt,pred)
         #all_ap[cls] = tp/(tp+fn)
         #micro[cls] = sklearn.metrics.recall_score(gt, pred, average='micro')
-        all_ap[cls] = sklearn.metrics.recall_score(gt, pred, average='macro')
+        all_ap[cls] = sklearn.metrics.recall_score(gt, pred)
         #weighted[cls] = sklearn.metrics.recall_score(gt, pred, average='weighted')
  
     #     print('micro', np.mean(micro))

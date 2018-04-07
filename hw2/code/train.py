@@ -177,6 +177,7 @@ t.tic()
 logger_v = visdom.Visdom(server='http://localhost' ,port='8097')
 logger_t = Logger('./tboard', name='wsddn')
 plotter = VisdomLinePlotter(env_name='main_wsddn_train')
+
 for step in range(start_step, end_step+1):
 
     # get one batch
@@ -209,23 +210,25 @@ for step in range(start_step, end_step+1):
         re_cnt = True
 
     #TODO: evaluate the model every N iterations (N defined in handout)
-    if step%500 ==0:   #Plot loss
+    if step%5 ==0:   #Plot loss#500
         logger_t.scalar_summary(tag= 'loss', value= loss.data[0], step= step)
         #logger_v.scalar_summary(tag= 'loss', value= loss.data[0], step= step)
-        plotter.plot('loss', 'train', step, loss.data[0])
+        plotter.plot('train_loss', 'train', step, loss.data[0])
 
     if step%2000 ==0:   #Plot mAP on histograms of weights and gradients
         logger_t.model_param_histo_summary(net, step=step)
-    if step%5000 ==0:   #Plot mAP on test/ and classwise APs
-        net.eval()
-        aps = test_net(name='wsddn_test', net=net, imdb =test_imdb, max_per_image=300, thresh=0.05, visualize=True, logger=logger_t, step=step)
-        mean_ap = np.mean(aps)
-        plotter.plot('mAP', 'test', step, mean_ap)
-        for idx in range(len(aps)):
-            tag = 'ap_' + imdb.classes[idx] + '_ap'
-            logger_t.scalar_summary(tag= tag, value= aps[idx], step= step)
-            
-        net.train()
+#     if (step)%5000 ==0:   #Plot mAP on test/ and classwise APs#5000
+#         net.eval()
+#         aps = test_net(name='wsddn_test', net=net, imdb =test_imdb, max_per_image=300, thresh=0.05, visualize=True, logger=logger_t, step=step)
+#         mean_ap = np.mean(aps)
+#         from IPython.core.debugger import Tracer; Tracer()()
+
+#         plotter.plot('wsddn_mAP', 'test', step, mean_ap)
+#         for idx in range(len(aps)):
+#             tag = 'ap_' + imdb.classes[idx] + '_ap'
+#             logger_t.scalar_summary(tag= tag, value= aps[idx], step= step)
+#         logger_t.scalar_summary(tag= 'wsddn_mAP', value= mean_ap, step= step)  
+#         net.train()
     #TODO: Perform all visualizations here
     #You can define other interval variable if you want (this is just an
     #example)
