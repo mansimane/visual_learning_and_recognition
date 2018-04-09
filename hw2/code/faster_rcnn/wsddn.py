@@ -133,8 +133,9 @@ class WSDDN(nn.Module):
         #Checkout forward() to see how it is called
         #sum over regions and compute loss wrt to label_vec
         cls_prob = torch.sum(cls_prob, dim=0)
+        cls_prob_sum = torch.clamp(cls_prob, min=0,max=1)
         loss_cls = torch.nn.BCELoss(size_average=False)
-        loss = loss_cls(cls_prob, label_vec)
+        loss = loss_cls(cls_prob_sum, label_vec)
 
 	return loss
 

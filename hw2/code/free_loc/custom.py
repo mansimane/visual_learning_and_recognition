@@ -1,6 +1,7 @@
 import torch.utils.data as data
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
+import math
 model_urls = {
         'alexnet': 'https://download.pytorch.org/models/alexnet-owt-4df8aa71.pth',
 }
@@ -169,8 +170,9 @@ def localizer_alexnet(pretrained=False, **kwargs):
         model_temp = models.alexnet(pretrained=True)
         model.features = nn.Sequential(*list(model_temp.features.children())[:-1])
         for f in model.classifier:
-            if isinstance(f, nn.Conv2D):
-                sum_io = f.weight.size[0] + f.weight.size[1]
+            if isinstance(f, nn.Conv2d):
+                #from IPython.core.debugger import Tracer; Tracer()()
+                sum_io = f.weight.size()[0] + f.weight.size()[1]
                 f.weight.data.normal_(0, math.sqrt(2.0 / sum_io))
         
         #way to verify if pretrained model loaded or not
@@ -195,14 +197,10 @@ def localizer_alexnet_robust(pretrained=False, **kwargs):
         model_temp = models.alexnet(pretrained=True)
         model.features = nn.Sequential(*list(model_temp.features.children())[:-1])
         for f in model.classifier:
-            if isinstance(f, nn.Conv2D):
-                sum_io = f.weight.size[0] + f.weight.size[1]
+            if isinstance(f, nn.Conv2d):
+                sum_io = f.weight.size()[0] + f.weight.size()[1]
                 f.weight.data.normal_(0, math.sqrt(2.0 / sum_io))
-
-
     return model
-
-
 
 
 

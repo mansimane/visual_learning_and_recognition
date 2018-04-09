@@ -87,7 +87,6 @@ weight_decay = cfg.TRAIN.WEIGHT_DECAY
 disp_interval = cfg.TRAIN.DISPLAY
 log_interval = cfg.TRAIN.LOG_IMAGE_ITERS
 
-
 # load imdb and create data later
 imdb = get_imdb(imdb_name)
 rdl_roidb.prepare_roidb(imdb)
@@ -105,50 +104,49 @@ else:
     pkl.dump(pret_net, open('pretrained_alexnet.pkl','wb'), pkl.HIGHEST_PROTOCOL)
 
 own_state = net.state_dict()
-#print(own_state)
+
+#Loading layers with different names: Courtesy Ziqiang Feng
 for name, param in pret_net.items():
-    #print(name)
-    if name not in own_state:
-        continue
     if isinstance(param, Parameter):
         param = param.data
     try:
-        own_state[name].copy_(param)
-        print('Copied {}'.format(name))
+        own_state_name = name
+        if name.startswith('classifier.1'):
+            own_state_name = name.replace('classifier.1', 'classifier.0', 1)
+        elif name.startswith('classifier.4'):
+            own_state_name = name.replace('classifier.4', 'classifier.3', 1)
+        own_state[own_state_name].copy_(param)
+        print('Copied {} to {}'.format(name, own_state_name))
     except:
         print('Did not find {}'.format(name))
         continue
-    if name == 'classifier.1.weight':
-        param = param.data
-        own_state['classifier.0.weight'].copy_(param)
-        print('Copied {}'.format(name))
-    if name == 'classifier.1.bias':
-        param = param.data
-        own_state['classifier.0.bias'].copy_(param)
-        print('Copied {}'.format(name))
     
-    if name == 'classifier.4.weight':
-        param = param.data
-        own_state['classifier.3.weight'].copy_(param)
-        print('Copied {}'.format(name))
+#     if name == 'classifier.1.weight':
+#         param = param.data
+#         own_state['classifier.0.weight'].copy_(param)
+#         print('Copied {}'.format(name))
+#     if name == 'classifier.1.bias':
+#         param = param.data
+#         own_state['classifier.0.bias'].copy_(param)
+#         print('classifier.0.bias Copied {}'.format(name))
     
-    if name == 'classifier.4.bias':
-        param = param.data
-        own_state['classifier.3.bias'].copy_(param)
-        print('Copied {}'.format(name))
+#     if name == 'classifier.4.weight':
+#         param = param.data
+#         own_state['classifier.3.weight'].copy_(param)
+#         print('classifier.3.weight Copied {}'.format(name))
     
-    if name == 'classifier.6.weight':#*** necessary?
-        param = param.data
-        own_state['score_cls.0.weight'].copy_(param)
-        own_state['score_det.0.weight'].copy_(param)
-        print('Copied {}'.format(name))
+#     if name == 'classifier.4.bias':
+#         param = param.data
+#         own_state['classifier.3.bias'].copy_(param)
+#         print('Copied {}'.format(name))
+    
+#     if name == 'classifier.6.weight':#*** necessary?
+#         param = param.data
+#         own_state['score_cls.0.weight'].copy_(param)
+#         own_state['score_det.0.weight'].copy_(param)
+#         print('Copied score_cls.0.weight  {}'.format(name))
        
          
-    if name == 'classifier.6.bias':
-        param = param.data
-        own_state['score_cls.0.bias'].copy_(param)
-        own_state['score_det.0.bias'].copy_(param)
-        print('Copied {}'.format(name))
         
                 
 #from IPython.core.debugger import Tracer; Tracer()()
@@ -174,7 +172,7 @@ re_cnt = False
 t = Timer()
 t.tic()
 
-logger_v = visdom.Visdom(server='http://localhost' ,port='8097')
+logger_v = visdom.Visdom(server='http://localhost' ,port='8099')
 logger_t = Logger('./tboard', name='wsddn')
 plotter = VisdomLinePlotter(env_name='main_wsddn_train')
 
@@ -217,18 +215,18 @@ for step in range(start_step, end_step+1):
 
     if step%2000 ==0:   #Plot mAP on histograms of weights and gradients
         logger_t.model_param_histo_summary(net, step=step)
-#     if (step)%5000 ==0:   #Plot mAP on test/ and classwise APs#5000
-#         net.eval()
-#         aps = test_net(name='wsddn_test', net=net, imdb =test_imdb, max_per_image=300, thresh=0.05, visualize=True, logger=logger_t, step=step)
-#         mean_ap = np.mean(aps)
-#         from IPython.core.debugger import Tracer; Tracer()()
+    if (step)%5000 ==0 and (step != 0):   #Plot mAP on test/ and classwise APs#5000
+        net.eval()
+        aps = test_net(name='wsddn_test', net=net, imdb =test_imdb, max_per_image=300, thresh=0.0001, visualize=True, logger=logger_t, step=step)
+        mean_ap = np.mean(aps)
+        #from IPython.core.debugger import Tracer; Tracer()()
 
-#         plotter.plot('wsddn_mAP', 'test', step, mean_ap)
-#         for idx in range(len(aps)):
-#             tag = 'ap_' + imdb.classes[idx] + '_ap'
-#             logger_t.scalar_summary(tag= tag, value= aps[idx], step= step)
-#         logger_t.scalar_summary(tag= 'wsddn_mAP', value= mean_ap, step= step)  
-#         net.train()
+        plotter.plot('wsddn_mAP', 'test', step, mean_ap)
+        for idx in range(len(aps)):
+            tag = 'ap_' + imdb.classes[idx] + '_ap'
+            logger_t.scalar_summary(tag= tag, value= aps[idx], step= step)
+        logger_t.scalar_summary(tag= 'wsddn_mAP', value= mean_ap, step= step)  
+        net.train()
     #TODO: Perform all visualizations here
     #You can define other interval variable if you want (this is just an
     #example)

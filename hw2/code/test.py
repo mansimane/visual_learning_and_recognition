@@ -43,7 +43,7 @@ if rand_seed is not None:
 cfg_from_file(cfg_file)
 
 
-def vis_detections(im, class_name, dets, thresh=1e-4):
+def vis_detections(im, class_name, dets, thresh=0.04):
     """Visual debugging of detections."""
     for i in range(np.minimum(10, dets.shape[0])):
         bbox = tuple(int(np.round(x)) for x in dets[i, :4])
@@ -102,6 +102,7 @@ def test_net(name, net, imdb, max_per_image=300, thresh=1e-4, visualize=False,
     det_file = os.path.join(output_dir, 'detections.pkl')
 
     roidb = imdb.roidb
+    #from IPython.core.debugger import Tracer; Tracer()()
 
     for i in range(num_images):
         im = cv2.imread(imdb.image_path_at(i))
@@ -142,13 +143,13 @@ def test_net(name, net, imdb, max_per_image=300, thresh=1e-4, visualize=False,
 
         print('im_detect: {:d}/{:d} {:.3f}s {:.3f}s'.format(i + 1, num_images, detect_time, nms_time))
 
-        if visualize and np.random.rand()<0.01:
+        if (visualize and np.random.rand()<0.01) and (step == 5000 or step == 15000 or step == 30000 or step >= 40000):
             # TODO: Visualize here using tensorboard
             # TODO: use the logger that is an argument to this function
             print('Visualizing')
             #from IPython.core.debugger import Tracer; Tracer()()
             im2show = im2show[np.newaxis, :,:,:]
-            logger.image_summary(tag = 'wsddn_test_image_' + str(i), images =im2show, step=step)
+            logger.image_summary(tag = 'wsddn_test_image_' + str(i)+ '_step_'+ str(step), images =im2show, step=step)
             #cv2.imshow('test', im2show)
             #cv2.waitKey(1)
 
