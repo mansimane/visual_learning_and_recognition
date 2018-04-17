@@ -25,6 +25,8 @@ from utils.blob import prep_im_for_blob, im_list_to_blob
 def get_weak_minibatch(roidb, num_classes):
     """Given a roidb, construct a minibatch sampled from it."""
     num_images = len(roidb)
+    #print('num_images',num_images)
+    #print('roidb[0].keys()',roidb[0].keys())
     # Sample random scales to use for each image in this batch
     random_scale_inds = npr.randint(0, high=len(cfg.TRAIN.SCALES),
                                     size=num_images)
@@ -42,7 +44,7 @@ def get_weak_minibatch(roidb, num_classes):
     # Now, build the region of interest and label blobs
     rois_blob = np.zeros((0, 5), dtype=np.float32)
     boxscores_blob = np.zeros(0, dtype=np.float32)
-    labels_blob = np.zeros((0,num_classes), dtype=np.float32)
+    labels_blob = np.zeros((num_images,num_classes), dtype=np.float32)
     bbox_targets_blob = np.zeros((0, 4 * num_classes), dtype=np.float32)
     bbox_inside_blob = np.zeros(bbox_targets_blob.shape, dtype=np.float32)
     thislabels = np.zeros((1,num_classes))
@@ -54,14 +56,20 @@ def get_weak_minibatch(roidb, num_classes):
         labels, overlaps, im_rois, bbox_targets, bbox_inside_weights \
             = _sample_rois(roidb[im_i], fg_rois_per_image, rois_per_image,
                            num_classes)
+            
         #TODO: same as get_minibatch, but we only use the image-level labels
         #So blobs['labels'] should contain a 1x20 binary vector for each image 
-    from IPython.core.debugger import Tracer; Tracer()() 
-    labels_blob = np.zeros((num_images,num_classes), dtype=np.float32)
-    for im_i in xrange(num_images):
-        for cls_idx in xrange(len(labels[im_i])):
-            labels_blob[im_i][cls_idx-1] = 1
-        
+        gt_classes = roidb[im_i]['gt_classes']
+        for cls_idx in xrange(len(gt_classes)):
+            if gt_classes[cls_idx] > 0:
+                labels_blob[im_i][gt_classes[cls_idx]-1] = 1
+        # Add to RoIs blob
+        rois = _project_im_rois(im_rois, im_scales[im_i])
+        batch_ind = im_i * np.ones((rois.shape[0], 1))
+        rois_blob_this_image = np.hstack((batch_ind, rois))
+        rois_blob = np.vstack((rois_blob, rois_blob_this_image))
+
+           
     blobs['rois'] = rois_blob
     blobs['labels'] = labels_blob
     blobs['im_name'] = os.path.basename(roidb[0]['image'])
@@ -178,6 +186,8 @@ def _get_image_blob(roidb, scale_inds):
     mean=np.array([[[0.485, 0.456, 0.406]]])
     std=np.array([[[0.229, 0.224, 0.225]]])
     for i in xrange(num_images):
+        #from IPython.core.debugger import Tracer; Tracer()()
+
         im = cv2.imread(roidb[i]['image'])/255.0
         if roidb[i]['flipped']:
             im = im[:, ::-1, :]

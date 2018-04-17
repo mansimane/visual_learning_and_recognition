@@ -13,7 +13,7 @@ from fast_rcnn.bbox_transform import bbox_transform_inv, clip_boxes
 import network
 from network import Conv2d, FC
 from roi_pooling.modules.roi_pool import RoIPool
-from vgg16 import VGG16
+#from vgg16 import VGG16
 
 def nms_detections(pred_boxes, scores, nms_thresh, inds=None):
     dets = np.hstack((pred_boxes,
@@ -45,26 +45,26 @@ class WSDDN(nn.Module):
         
         #TODO: Define the WSDDN model
         self.features = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=(11, 11), stride=(4, 4), padding=(2, 2)),
+            nn.Conv2d(3, 64, kernel_size=(11, 11), stride=(4, 4), padding=(2, 2)), #0
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=(3, 3), stride=(2, 2), dilation=(1, 1), ceil_mode=False),
-            nn.Conv2d(64, 192, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2)),
+            nn.Conv2d(64, 192, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2)),#3
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=(3, 3), stride=(2, 2), dilation=(1, 1), ceil_mode=False),
-            nn.Conv2d(192, 384, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.Conv2d(192, 384, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),#6
             nn.ReLU(inplace=True),
-            nn.Conv2d(384, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.Conv2d(384, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),#8
             nn.ReLU(inplace=True),
-            nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),#10
           )
         
-        self.roi_pool = RoIPool()
+        self.roi_pool = RoIPool(6, 6, 1.0/16)
         
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=9216, out_features=4096),
+            nn.Linear(in_features=9216, out_features=4096),#11-1
             nn.ReLU(inplace=True),
             nn.Dropout(p=0.5),
-            nn.Linear(in_features=4096, out_features=4096),
+            nn.Linear(in_features=4096, out_features=4096),#12-4
             nn.ReLU(inplace=True)
           )
         
@@ -95,12 +95,25 @@ class WSDDN(nn.Module):
         # compute cls_prob which are N_roi X 20 scores
         # Checkout faster_rcnn.py for inspiration
         features = self.features(im_data)
-        from IPython.core.debugger import Tracer; Tracer()() 
-
-
-
-
-
+        #from IPython.core.debugger import Tracer; Tracer()() 
+        rois = network.np_to_variable(rois, is_cuda=True)
+        roi_features1 =  self.roi_pool.forward(features,rois)  # should be a 4D tensor for single image or after flattening
+        #print(roi_features1.size()) #(2997L, 256L, 6L, 6L)
+        roi_features1 = roi_features1.view(-1, 9216)#2997 x 9216
+        roi_features2 =  self.classifier(roi_features1)
+        
+        #print(roi_features2.size())
+        cls_score = self.score_cls(roi_features2) #  2997x20
+        det_score = self.score_det(roi_features2) #RxC or CxR?
+        
+        cls_score =  F.softmax(cls_score,dim=1)
+        
+ #       det_score = torch.traspose(det_score,dim=0)
+        det_score = F.softmax(det_score,dim=0)
+        #det_score = torch.traspose(det_score)
+        
+        cls_prob = torch.mul(det_score,cls_score)
+        
         if self.training:
             label_vec = network.np_to_variable(gt_vec, is_cuda=True)
             label_vec = label_vec.view(self.n_classes,-1)
@@ -118,11 +131,11 @@ class WSDDN(nn.Module):
         #TODO: Compute the appropriate loss using the cls_prob that is the
         #output of forward()
         #Checkout forward() to see how it is called
-
-
-
-
-
+        #sum over regions and compute loss wrt to label_vec
+        cls_prob = torch.sum(cls_prob, dim=0)
+        cls_prob_sum = torch.clamp(cls_prob, min=0,max=1)
+        loss_cls = torch.nn.BCELoss(size_average=False)
+        loss = loss_cls(cls_prob_sum, label_vec)
 
 	return loss
 

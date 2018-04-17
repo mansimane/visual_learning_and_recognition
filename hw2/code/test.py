@@ -43,7 +43,7 @@ if rand_seed is not None:
 cfg_from_file(cfg_file)
 
 
-def vis_detections(im, class_name, dets, thresh=0.8):
+def vis_detections(im, class_name, dets, thresh=0.04):
     """Visual debugging of detections."""
     for i in range(np.minimum(10, dets.shape[0])):
         bbox = tuple(int(np.round(x)) for x in dets[i, :4])
@@ -85,7 +85,7 @@ def im_detect(net, image, rois):
     return scores, pred_boxes
 
 
-def test_net(name, net, imdb, max_per_image=300, thresh=0.05, visualize=False,
+def test_net(name, net, imdb, max_per_image=300, thresh=1e-4, visualize=False,
              logger=None, step=None):
     """Test a Fast R-CNN network on an image database."""
     num_images = len(imdb.image_index)
@@ -102,6 +102,7 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.05, visualize=False,
     det_file = os.path.join(output_dir, 'detections.pkl')
 
     roidb = imdb.roidb
+    #from IPython.core.debugger import Tracer; Tracer()()
 
     for i in range(num_images):
         im = cv2.imread(imdb.image_path_at(i))
@@ -126,7 +127,7 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.05, visualize=False,
             keep = nms(cls_dets, cfg.TEST.NMS)
             cls_dets = cls_dets[keep, :]
             if visualize:
-                im2show = vis_detections(im2show, imdb.classes[j], cls_dets)
+                im2show = vis_detections(im2show, imdb.classes[newj], cls_dets)
             all_boxes[j][i] = cls_dets
 
         # Limit to max_per_image detections *over all classes*
@@ -142,10 +143,13 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.05, visualize=False,
 
         print('im_detect: {:d}/{:d} {:.3f}s {:.3f}s'.format(i + 1, num_images, detect_time, nms_time))
 
-        if visualize and np.random.rand()<0.01:
+        if (visualize and np.random.rand()<0.01) and (step == 5000 or step == 15000 or step == 30000 or step >= 40000):
             # TODO: Visualize here using tensorboard
             # TODO: use the logger that is an argument to this function
             print('Visualizing')
+            #from IPython.core.debugger import Tracer; Tracer()()
+            im2show = im2show[np.newaxis, :,:,:]
+            logger.image_summary(tag = 'wsddn_test_image_' + str(i)+ '_step_'+ str(step), images =im2show, step=step)
             #cv2.imshow('test', im2show)
             #cv2.waitKey(1)
 

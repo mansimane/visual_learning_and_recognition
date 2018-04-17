@@ -1,6 +1,7 @@
 import torch.utils.data as data
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
+import math
 model_urls = {
         'alexnet': 'https://download.pytorch.org/models/alexnet-owt-4df8aa71.pth',
 }
@@ -110,7 +111,6 @@ class LocalizerAlexNet(nn.Module):
 
     def forward(self, x):
         #TODO: Define forward pass
-        #do we need reshaping
         x = self.features(x)
         x = self.classifier(x)
         return x
@@ -122,13 +122,35 @@ class LocalizerAlexNetRobust(nn.Module):
     def __init__(self, num_classes=20):
         super(LocalizerAlexNetHighres, self).__init__()
         #TODO: Ignore for now until instructed
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=(11, 11), stride=(4, 4), padding=(2, 2)),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=(3, 3), stride=(2, 2), dilation=(1, 1), ceil_mode=False),
+            nn.Conv2d(64, 192, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2)),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=(3, 3), stride=(2, 2), dilation=(1, 1), ceil_mode=False),
+            nn.Conv2d(192, 384, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(384, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(inplace=True)
+          )
+        
+        self.classifier = nn.Sequential(
+            nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 20, kernel_size=(1, 1), stride=(1, 1))
+          )
 
 
 
     def forward(self, x):
         #TODO: Ignore for now until instructed
-
-
+        x = self.features(x)
+        x = self.classifier(x)
         return x
 
 
@@ -148,8 +170,9 @@ def localizer_alexnet(pretrained=False, **kwargs):
         model_temp = models.alexnet(pretrained=True)
         model.features = nn.Sequential(*list(model_temp.features.children())[:-1])
         for f in model.classifier:
-            if isinstance(f, nn.Conv2D):
-                sum_io = f.weight.size[0] + f.weight.size[1]
+            if isinstance(f, nn.Conv2d):
+                #from IPython.core.debugger import Tracer; Tracer()()
+                sum_io = f.weight.size()[0] + f.weight.size()[1]
                 f.weight.data.normal_(0, math.sqrt(2.0 / sum_io))
         
         #way to verify if pretrained model loaded or not
@@ -170,11 +193,14 @@ def localizer_alexnet_robust(pretrained=False, **kwargs):
     """
     model = LocalizerAlexNetRobust(**kwargs)
     #TODO: Ignore for now until instructed
-
-
+    if pretrained:
+        model_temp = models.alexnet(pretrained=True)
+        model.features = nn.Sequential(*list(model_temp.features.children())[:-1])
+        for f in model.classifier:
+            if isinstance(f, nn.Conv2d):
+                sum_io = f.weight.size()[0] + f.weight.size()[1]
+                f.weight.data.normal_(0, math.sqrt(2.0 / sum_io))
     return model
-
-
 
 
 

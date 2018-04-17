@@ -50,7 +50,7 @@ parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float,
                     metavar='W', help='weight decay (default: 1e-4)')
 parser.add_argument('--print-freq', '-p', default=10, type=int,
                     metavar='N', help='print frequency (default: 10)')
-parser.add_argument('--eval-freq', default=10, type=int,
+parser.add_argument('--eval-freq', default=2, type=int,
                     metavar='N', help='print frequency (default: 10)')
 parser.add_argument('--resume', default='', type=str, metavar='PATH',
                     help='path to latest checkpoint (default: none)')
@@ -68,9 +68,11 @@ parser.add_argument('--vis',action='store_true')
 
 best_prec1 = 0
 
+global_step = 0
 
 def main():
     global args, best_prec1
+    global global_step
     args = parser.parse_args()
     args.distributed = args.world_size > 1
     np.random.seed(5)
@@ -78,9 +80,9 @@ def main():
     # create model
     print("=> creating model '{}'".format(args.arch))
     if args.arch=='localizer_alexnet':
-        model = localizer_alexnet(pretrained=args.pretrained)
+        model = localizer_alexnet(pretrained=True)
     elif args.arch=='localizer_alexnet_robust':
-        model = localizer_alexnet_robust(pretrained=args.pretrained)
+        model = localizer_alexnet_robust(pretrained=True)
     print(model)
 
     model.features = torch.nn.DataParallel(model.features)
@@ -90,7 +92,7 @@ def main():
     # define loss function (criterion) and optimizer
     optimizer = optim.SGD(model.parameters(), lr = args.lr, momentum=0.9)
     criterion = nn.MultiLabelSoftMarginLoss()
-
+    #global global_step
     
     # optionally resume from a checkpoint
     if args.resume:
@@ -138,17 +140,15 @@ def main():
         num_workers=args.workers, pin_memory=True)
 
     if args.evaluate:
-        validate(val_loader, model, criterion)
+        validate(val_loader, model, criterion, logger_t ,logger_v, epoch)
         return
 
     # TODO: Create loggers for visdom and tboard
     # TODO: You can pass the logger objects to train(), make appropriate
     # modifications to train()
     logger_t = Logger('./tboard', name='freeloc')
-    logger_v = visdom.Visdom(server='http://localhost',port='8097')
+    logger_v = visdom.Visdom(server='http://localhost',port='8099')
     #logger_v = Logger('./visdom', name='freeloc')
-
-
 
 
     for epoch in range(args.start_epoch, args.epochs):
@@ -159,8 +159,8 @@ def main():
         train(train_loader, model, criterion, optimizer, epoch, logger_t, logger_v)
 
         # evaluate on validation set
-        if epoch%args.eval_freq==0 or epoch==args.epochs-1:
-            m1, m2 = validate(val_loader, model, criterion)
+        if epoch%2==0 or epoch==args.epochs-1:
+            m1, m2 = validate(val_loader, model, criterion, logger_t, logger_v,epoch)
             score = m1*m2
             # remember best prec@1 and save checkpoint
             is_best =  score > best_prec1
@@ -173,9 +173,11 @@ def main():
                 'optimizer' : optimizer.state_dict(),
             }, is_best)
 
+    torch.save(model, 'free_loc_model.pt')
 
 #TODO: You can add input arguments if you wish
 def train(train_loader, model, criterion, optimizer, epoch, logger_t, logger_v):
+    global global_step
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -192,6 +194,7 @@ def train(train_loader, model, criterion, optimizer, epoch, logger_t, logger_v):
     max_i_div = int(max_i/4)  #since we want to plot images for 4 batches
     
     for i, (input, target) in enumerate(train_loader):
+        global_step +=1
         # measure data loading time
         data_time.update(time.time() - end)
 
@@ -208,12 +211,15 @@ def train(train_loader, model, criterion, optimizer, epoch, logger_t, logger_v):
         
         #print(output.size())
         max_out = F.max_pool2d(output, kernel_size=output.size()[-1])
-        
+        #print(output.size())
         imoutput = max_out.squeeze()
         #imoutput = out.transpose(1,2)
         
         loss = criterion(imoutput, target_var)
-        
+        #print(imoutput.size())
+        #m = torch.nn.Sigmoid()
+        #sig_imoutput = m(imoutput.data)
+
         # measure metrics and record loss
         m1 = metric1(imoutput.data, target)
         m2 = metric2(imoutput.data, target)
@@ -243,71 +249,80 @@ def train(train_loader, model, criterion, optimizer, epoch, logger_t, logger_v):
                    data_time=data_time, loss=losses, avg_m1=avg_m1,
                    avg_m2=avg_m2))
             # log the loss value
-            logger_t.scalar_summary(tag= 'loss', value= loss, step= (i+1)*epoch)
+            logger_t.scalar_summary(tag= 'loss', value= loss, step= global_step)
+            logger_t.scalar_summary(tag= 'train_mAP', value= m1[0], step= global_step)
+            logger_t.scalar_summary(tag= 'train_Recall', value= m2[0], step= global_step)
         #print(i)
         
         #TODO: Visualize things as mentioned in handout
         #TODO: Visualize at appropriate intervals
-        if i % max_i_div == 0:
+        if (i % max_i_div == 0) and (epoch < 3 or epoch > 28):
             for b_idx in range(target.size()[0]):
                 if b_idx > 4: 
                     break
                 img_name = train_loader.dataset.imdb.image_path_at(b_idx+ i*args.batch_size)[-11:-1]
-                logger_t.image_summary(tag = 'imgs batch:' + str(b_idx), images =input[b_idx,:,:,:], step=epoch)
-#                train_img = input[b_idx].cpu().numpy()*((np.array([[[0.229]], [[0.224]], [[0.225]]])+             np.array([[[0.485]], [[0.456]], [[0.406]]]))*255).astype(np.uint8)
-                #input_np = input[b_idx].cpu().numpy();
-                #train_img = (255 * (input_np - np.max(input_np))/np.ptp(input_np)).astype(np.uint8)
-                train_img = input[b_idx]
-                train_img = train_img.numpy()
-                train_img = train_img * np.array([0.229, 0.224, 0.225]).reshape((3,1,1))
-                train_img = train_img + np.array([0.485, 0.456, 0.406]).reshape((3,1,1))
-                train_img = (train_img * 256).astype(np.uint8)
-                
-                #print(train_img.size())
-                title = "_".join((str(epoch), str((i+1)*epoch), str(b_idx), img_name)) 
+                #log train image to VISdom and tensorboard
+                train_img_t = input[b_idx].cpu().numpy()
+                train_img_t = (train_img_t - train_img_t.min())/(train_img_t.max() - train_img_t.min())
+                title = 'train/epoch'+ str(epoch) + '_batch'+ str(i) + '_bidx' + str(b_idx)+'image' +img_name
                 logger_v.image(
-                    train_img,
+                    train_img_t,
                     opts=dict(title=title),
                 )
-                h, w = input.size()[2], input.size()[3]
-                cnt = sum(target[b_idx][:])
+                logger_t.model_param_histo_summary(model, step=epoch)
+                train_img_t4 = np.uint8(np.transpose(train_img_t,(1,2,0)) * 255)
+                train_img_t4 = train_img_t4[np.newaxis, :,:,:]
+                logger_t.image_summary(tag = 'train/epoch'+ str(epoch) + '_batch'+ str(i) + '_bidx' + str(b_idx)+'image'+img_name, images =train_img_t4, step=epoch)
+
                 
-                #heatmap = torch.tensor(cnt,3,h,w)
-                #label_cnt = 0
-                #upsmapler = nn.Upsample(size = (h,w))
-                for j in range(target.size()[1]):
-                    if target[b_idx][j] == 1:
-                        #gray = upsmapler(output[i][j][:][:]) #Only 3D, 4D and 5D input Tensors 
-                        #supported, does not work
-                        a = np.array(output[b_idx][j][:][:].data)
-                        #print(a.shape)
-                        m = Image.fromarray(a*256).convert('RGB') 
-                        m = m.resize((h,w))
-                        
-                        clr = cv2.applyColorMap(np.array(m) ,cv2.COLORMAP_JET)
-                        #print(clr.shape)
-                        #heatmap[label_cnt][:][:][:] = clr
+                h, w = input.size()[2], input.size()[3]
+                
+                gt_ind = [x for x in range(target.size()[1]) if target[b_idx,x] == 1]
+                heatmap = np.zeros((len(gt_ind),512,512))
+                output_np = output.data.cpu().numpy()
+                #from IPython.core.debugger import Tracer; Tracer()()
+
+                output_np.resize((output_np.shape[0],output_np.shape[1], 1, output_np.shape[2], output_np.shape[3]))
+                for j in range(len(gt_ind)):
+                    cls_idx = gt_ind[j]
+                    im = output_np[b_idx,cls_idx,:,:]
+                    h_norm = (im - im.min())/(im.max() -im.min())
+                    '''
+                    hr_cv = cv2.resize(h_norm[0], (512,512))
+                    hr_cv2 = hr_cv[np.newaxis, :,:]
+                    logger_t.image_summary(tag = 'mansi:' + str(b_idx), images =hr_cv2, step=epoch)
+                    '''
+                    b = cv2.resize(h_norm[0]*256, (512,512))
+                    heatmap[j] = b
+                    #logging heatmap to visdom
+                    title = 'train/epoch'+ str(epoch) + '_batch'+ str(i) + '_bidx' + str(b_idx)+ 'heatmap' + train_loader.dataset.idx_to_cls[cls_idx] +'_' + img_name
+                    logger_v.image(
+                        b,
+                        opts=dict(title=title)
+                     )
+
+                    
                         ### Tensorflow
-                        logger_t.image_summary(tag =  'heat map batch:' + str(b_idx), images= np.array(m), step=epoch)
+                #logging heatmap image to tensorboard
+                tag = 'train/epoch'+ str(epoch) + '_batch'+ str(i) + '_bidx' + str(b_idx)+'heatmap'+img_name
+                logger_t.image_summary(tag = tag, images= heatmap, step=global_step)
                         ### Visdom
-                        title = "_".join((str(epoch), str((i+1)*epoch), str(b_idx), 'heatmap', img_name, train_loader.dataset.idx_to_cls[j]))
-                        logger_v.image(
-                            clr.transpose((2,0,1)),
-                            opts=dict(title=title)
-                        )
+                
         
         
-def validate(val_loader, model, criterion):
+def validate(val_loader, model, criterion, logger_t, logger_v, epoch):
+    global global_step
     batch_time = AverageMeter()
     losses = AverageMeter()
     avg_m1 = AverageMeter()
     avg_m2 = AverageMeter()
 
-
     # switch to evaluate mode
     model.eval()
 
     end = time.time()
+    max_div = len(val_loader)//20
+    
     for i, (input, target) in enumerate(val_loader):
         target = target.type(torch.FloatTensor).cuda(async=True)
         input_var = torch.autograd.Variable(input, volatile=True)
@@ -321,8 +336,14 @@ def validate(val_loader, model, criterion):
         output = model(input_var)
         max_out = F.max_pool2d(output, kernel_size=output.size()[-1])
         imoutput = max_out.squeeze()
+        
+#         max_out = nn.max_pool2d(output, kernel_size=(output.size()[-1],output.size()[-1])
+#         max_out = global_max(max_out)
+#         imoutput = max_out.view(output.shape[0], output.shape[1])
         loss = criterion(imoutput, target_var)
-
+        
+#         m = torch.nn.Sigmoid()
+#         sig_imoutput = m(imoutput.data)
 
         # measure metrics and record loss
         m1 = metric1(imoutput.data, target)
@@ -343,13 +364,60 @@ def validate(val_loader, model, criterion):
                   'Metric2 {avg_m2.val:.3f} ({avg_m2.avg:.3f})'.format(
                    i, len(val_loader), batch_time=batch_time, loss=losses,
                    avg_m1=avg_m1, avg_m2=avg_m2))
+            logger_t.scalar_summary(tag= 'val_mAP', value= avg_m1.avg, step= global_step)
+            logger_t.scalar_summary(tag= 'val_Recall', value= avg_m2.avg, step= global_step)
 
         #TODO: Visualize things as mentioned in handout
         #TODO: Visualize at appropriate intervals
         #
         
+        if i % max_div == 0:
+                b_idx = 0
+                img_name = val_loader.dataset.imdb.image_path_at(b_idx+ i*args.batch_size)[-11:-1]
+                #log train image to VISdom and tensorboard
+                train_img_t = input[b_idx].cpu().numpy()
+                train_img_t = (train_img_t - train_img_t.min())/(train_img_t.max() - train_img_t.min())
+                title = 'val/epoch'+ str(epoch) + '_batch'+ str(i) + '_bidx' + str(b_idx)+'image' +img_name
+                logger_v.image(
+                    train_img_t,
+                    opts=dict(title=title),
+                )
+                logger_t.model_param_histo_summary(model, step=epoch)
+                train_img_t4 = np.uint8(np.transpose(train_img_t,(1,2,0)) * 255)
+                train_img_t4 = train_img_t4[np.newaxis, :,:,:]
+                logger_t.image_summary(tag = 'val/epoch'+ str(epoch) + '_batch'+ str(i) + '_bidx' + str(b_idx)+'image'+img_name, images =train_img_t4, step=epoch)
 
+                h, w = input.size()[2], input.size()[3]
+                
+                gt_ind = [x for x in range(target.size()[1]) if target[b_idx,x] == 1]
+                heatmap = np.zeros((len(gt_ind),512,512))
+                output_np = output.data.cpu().numpy()
+                #from IPython.core.debugger import Tracer; Tracer()()
 
+                output_np.resize((output_np.shape[0],output_np.shape[1], 1, output_np.shape[2], output_np.shape[3]))
+                for j in range(len(gt_ind)):
+                    cls_idx = gt_ind[j]
+                    im = output_np[b_idx,cls_idx,:,:]
+                    h_norm = (im - im.min())/(im.max() -im.min())
+                    '''
+                    hr_cv = cv2.resize(h_norm[0], (512,512))
+                    hr_cv2 = hr_cv[np.newaxis, :,:]
+                    logger_t.image_summary(tag = 'mansi:' + str(b_idx), images =hr_cv2, step=epoch)
+                    '''
+                    b = cv2.resize(h_norm[0]*256, (512,512))
+                    heatmap[j] = b
+                    #logging heatmap to visdom
+                    title = 'val/epoch'+ str(epoch) + '_batch'+ str(i) + '_bidx' + str(b_idx)+ 'heatmap' + val_loader.dataset.idx_to_cls[cls_idx] +'_' + img_name
+                    logger_v.image(
+                        b,
+                        opts=dict(title=title)
+                     )
+                        ### Tensorflow
+                #logging heatmap image to tensorboard
+                tag = 'val/epoch'+ str(epoch) + '_batch'+ str(i) + '_bidx' + str(b_idx)+'heatmap'+img_name
+                logger_t.image_summary(tag = tag, images= heatmap, step=global_step)
+                        ### Visdom
+            
 
     print(' * Metric1 {avg_m1.avg:.3f} Metric2 {avg_m2.avg:.3f}'
           .format(avg_m1=avg_m1, avg_m2=avg_m2))
@@ -363,7 +431,14 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
     if is_best:
         shutil.copyfile(filename, 'model_best.pth.tar')
 
-
+def normalize_img(im):
+    ## input is numpy array
+    ## u get the normalized array
+    im = im - im.min()
+    im = im / im.max()
+    im = (im * 255).astype(np.uint8)
+    return im
+                                     
 class AverageMeter(object):
     """Computes and stores the average and current value"""
     def __init__(self):
@@ -392,25 +467,37 @@ def adjust_learning_rate(optimizer, epoch):
 def metric1(output, target):
     # TODO: Ignore for now - proceed till instructed
     #size Nxk
-    target = np.array(torch.nn.Sigmoid(target))
+    #from IPython.core.debugger import Tracer; Tracer()()
+    #from IPython.core.debugger import Tracer; Tracer()()
+
+    target = np.array(target)
+    #print(target.shape)
     output = np.array(output)
     all_ap = np.zeros((target.shape[1]))
-    for cls in range(output.shape[1]):
+    nclasses = target.shape[1]
+    #print(output.shape)
+
+    for cls in range(nclasses):
         
-        gt = target[:][cls]
-        pred = output[:][cls]
+        gt = target[:,cls]
+        pred = output[:,cls]
         pred -= 1e-5 * gt    # Subtract eps from score to make AP work for tied scores
         all_ap[cls] = sklearn.metrics.average_precision_score(gt, pred, average=None)
-    return all_ap
+    all_ap_final = []
+    for i in range(len(all_ap)):
+        if not np.isnan(all_ap[i]):
+            all_ap_final.append(all_ap[i])
+    ans = np.mean(np.array(all_ap_final))
+    return [ans]
 
-def metric2(output, target,th = 0.5):
+def metric2(output, target,th = 0.2):
     # TODO: Ignore for now - proceed till instructed
-    def false_neg(y_true, y_pred):
-              return np.sum((1. - y_pred) * y_true)
-    def true_pos(y_true, y_pred):
-              return np.sum(y_true * y_pred)
+#     def false_neg(y_true, y_pred):
+#               return np.sum((1. - y_pred) * y_true)
+#     def true_pos(y_true, y_pred):
+#               return np.sum(y_true * y_pred)
     
-    target = np.array(torch.nn.Sigmoid(target))
+    target = np.array(target)
     target = target.astype('float')
     output = np.array(output)
     output = (output > th).astype('float')
@@ -418,20 +505,23 @@ def metric2(output, target,th = 0.5):
     micro = np.zeros((target.shape[1]))
     macro = np.zeros((target.shape[1]))
     weighted = np.zeros((target.shape[1]))
-    for cls in range(output.shape[1]):
-        gt = target[:][cls]
-        pred = output[:][cls]
-        tp = true_pos(gt,pred)
+    nclasses = target.shape[1]
+    for cls in range(nclasses):
+        
+        gt = target[:,cls]
+        pred = output[:,cls]
+        #tp = true_pos(gt,pred)
         #fn = false_neg(gt,pred)
         #all_ap[cls] = tp/(tp+fn)
         #micro[cls] = sklearn.metrics.recall_score(gt, pred, average='micro')
-        all_ap[cls] = sklearn.metrics.recall_score(gt, pred, average='macro')
+        all_ap[cls] = sklearn.metrics.recall_score(gt, pred)
         #weighted[cls] = sklearn.metrics.recall_score(gt, pred, average='weighted')
  
     #     print('micro', np.mean(micro))
     #     print('macro', np.mean(macro))
     #     print('weighted', np.mean(weighted))
-    return all_ap
+    ans = np.mean(all_ap)
+    return [ans]
 
 if __name__ == '__main__':
     main()
